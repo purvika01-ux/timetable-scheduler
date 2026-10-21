@@ -2,15 +2,14 @@
   "name": "timetable-web",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
-    "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "test": "node --test \"tests/**/*.test.ts\""
   },
   "dependencies": {
     "react": "19.1.0",
@@ -29,6 +28,6 @@
     "@eslint/eslintrc": "^3"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22.18"
   }
 }
