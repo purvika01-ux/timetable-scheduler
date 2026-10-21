@@ -103,7 +103,7 @@ export default function DashboardPage() {
         </p>
       )}
 
-      <div className="grid gap-4 lg:grid-cols-5">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
         {/* Next class */}
         <section aria-labelledby="next-heading" className="rounded-lg border border-line bg-white p-5 lg:col-span-3">
           <div className="flex items-center justify-between gap-2">
@@ -133,7 +133,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-5">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
         <Panel
           className="lg:col-span-3"
           title={today ? `Today · ${grid.days.find((d) => d.id === today)?.label}` : "Today"}

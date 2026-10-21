@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { entryTimes, formatRange, PERIOD_MINUTES, periodLabel, validStarts } from "@/lib/timetable/grid";
 import type { Lookup } from "@/lib/timetable/lookup";
@@ -161,6 +161,12 @@ function MoveForm({
   const [start, setStart] = useState(entry.startPeriod);
   const [roomId, setRoomId] = useState(entry.roomId);
   const [issues, setIssues] = useState<ValidationIssue[] | null>(null);
+  const issuesRef = useRef<HTMLDivElement>(null);
+
+  // Bring the rejection reasons into view inside the scrolling dialog.
+  useEffect(() => {
+    if (issues?.length) issuesRef.current?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [issues]);
 
   const req = lookup.requirement(entry.requirementId);
   const rooms = dataset.rooms.filter((r) => r.type === (req?.roomType ?? "lecture"));
@@ -295,7 +301,7 @@ function MoveForm({
       )}
 
       {issues && issues.length > 0 && (
-        <div className="mt-3">
+        <div className="mt-3" ref={issuesRef}>
           <Banner tone="error" title="Move not saved: it would create a problem">
             <ul className="list-disc space-y-0.5 pl-4">
               {issues.map((i, n) => (

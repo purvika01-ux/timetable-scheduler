@@ -94,7 +94,8 @@ function isEntryFor(dataset: Dataset, value: unknown): value is ScheduledEntry {
 export function parseStoredTimetable(raw: string | null, dataset: Dataset): ParseResult<StoredTimetable> {
   if (raw === null) return { value: null };
   const data = safeJson(raw);
-  const problem = "Your saved timetable was from an older version of the demo, so the sample timetable is shown.";
+  const problem =
+    "Your saved timetable could not be read (it may be from an older version of the demo), so the sample timetable is shown.";
   if (
     !isRecord(data) ||
     data.version !== 1 ||

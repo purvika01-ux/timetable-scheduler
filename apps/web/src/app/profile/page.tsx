@@ -26,7 +26,7 @@ export default function ProfilePage() {
     <div>
       <PageHeader title="Profile" description="Your sample teacher profile, teaching assignments and demo data controls." />
 
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <Panel className="lg:col-span-1">
           <div className="flex items-center gap-4">
             <span className="grid h-16 w-16 place-items-center rounded-full bg-slate-800 text-xl font-semibold text-white" aria-hidden="true">
@@ -59,7 +59,7 @@ export default function ProfilePage() {
 
         <div className="space-y-4 lg:col-span-2">
           <Panel title="Teaching assignments">
-            <div className="overflow-x-auto">
+            <div className="relative overflow-x-auto">
               <table className="w-full min-w-[480px] text-sm">
                 <thead>
                   <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-ink-muted">

@@ -97,6 +97,7 @@ export default function GeneratePage() {
   const placed = run?.result.entries.length ?? 0;
   const unplaced = run?.result.unplaced ?? [];
   const canApply = !!run && run.report.valid && run.datasetId === "standard";
+  const sameData = run?.datasetId === datasetId;
 
   return (
     <div>
@@ -110,7 +111,7 @@ export default function GeneratePage() {
         }
       />
 
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <Panel title="1. Choose sample data" className="lg:col-span-2">
           <fieldset>
             <legend className="sr-only">Sample data set</legend>
@@ -168,10 +169,10 @@ export default function GeneratePage() {
             one 2-period block that never crosses lunch; daily teaching limit.
           </p>
           <div className="mt-4 flex flex-col gap-2">
-            <Button variant="primary" icon="generate" onClick={() => generate(run ? seed : 1)} disabled={running} className="w-full">
-              {running ? "Generating…" : run ? "Generate again (same seed)" : "Generate timetable"}
+            <Button variant="primary" icon="generate" onClick={() => generate(sameData ? seed : 1)} disabled={running} className="w-full">
+              {running ? "Generating…" : sameData ? "Generate again (same seed)" : "Generate timetable"}
             </Button>
-            {run && (
+            {sameData && (
               <Button icon="refresh" onClick={() => generate(seed + 1)} disabled={running} className="w-full">
                 Regenerate (try seed {seed + 1})
               </Button>

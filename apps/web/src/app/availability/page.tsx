@@ -150,7 +150,7 @@ function AvailabilityEditor({ saved, savedAt }: { saved: SlotKey[]; savedAt: str
         )}
       </div>
 
-      <div className="mt-4 overflow-x-auto rounded-lg border border-line bg-white">
+      <div className="relative mt-4 overflow-x-auto rounded-lg border border-line bg-white">
         <table className="w-full min-w-[640px] table-fixed border-collapse text-sm">
           <caption className="sr-only">Weekly availability for {teacher.name}</caption>
           <colgroup>

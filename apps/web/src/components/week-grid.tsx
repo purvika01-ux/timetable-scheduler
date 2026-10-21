@@ -37,7 +37,7 @@ export function WeekGrid({
     entries.some((e) => e.day === day && e.startPeriod < period && e.startPeriod + e.span > period);
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-line bg-white">
+    <div className="relative overflow-x-auto rounded-lg border border-line bg-white">
       <table className="w-full min-w-[820px] table-fixed border-collapse text-sm">
         <caption className="sr-only">{caption}</caption>
         <colgroup>
