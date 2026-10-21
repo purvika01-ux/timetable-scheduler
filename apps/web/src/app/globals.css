@@ -1,15 +1,66 @@
 @import "tailwindcss";
 
-/* Full design tokens (UI_UX_GUIDELINES.md section 3) arrive in Phase 7. Light theme only at MVP. */
-:root {
-  --color-bg: #ffffff;
-  --color-text: #0f172a;
+/* Design tokens (UI_UX_GUIDELINES.md section 3). Light theme only for the prototype. */
+@theme {
+  --color-primary: #1d4ed8;
+  --color-primary-hover: #1e40af;
+  --color-surface: #f8fafc;
+  --color-line: #cbd5e1;
+  --color-line-soft: #e2e8f0;
+  --color-ink: #0f172a;
+  --color-ink-muted: #475569;
+  --color-success: #15803d;
+  --color-warning: #b45309;
+  --color-danger: #b91c1c;
+  --color-info: #0369a1;
+  --font-sans: system-ui, "Segoe UI", Roboto, "Noto Sans", "Noto Sans Gurmukhi", sans-serif;
+}
+
+html {
+  background: #ffffff;
+  color: var(--color-ink);
 }
 
 body {
-  background: var(--color-bg);
-  color: var(--color-text);
-  /* Noto Sans is proposed (U4, OPEN); system fonts until decided. */
-  font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--font-sans);
   line-height: 1.5;
+}
+
+/* Visible focus everywhere: 2px primary ring with 2px offset. */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* Hatched band for breaks on the timetable grid. */
+.hatch {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent 0 6px,
+    rgb(148 163 184 / 0.22) 6px 7px
+  );
+}
+
+dialog::backdrop {
+  background: rgb(15 23 42 / 0.45);
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+.toast-in {
+  animation: toast-in 160ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }
