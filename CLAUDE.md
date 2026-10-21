@@ -2,6 +2,16 @@
 
 Multi-tenant timetable platform for colleges in Punjab. Started from the "Scheduling Optimizer: Hackathon 1" brief (Punjab Jobs AI Bootcamp). Judging: no clashes, usability, design, advanced functionality, relevance. Submission: GitHub repo (source, README, CLAUDE.md) and a live link.
 
+## Current mode: frontend-only hackathon prototype (temporary)
+
+Owner direction, 2026-10-21 (see `docs/DECISIONS.md`): for the hackathon evaluation, the working product is a **frontend-only prototype** in `apps/web`. Teacher role first, plus a working generation demo.
+
+- Next.js, React, TypeScript and Tailwind only. No Python, FastAPI, Docker, database, Redis, workers, external auth, or paid services. Do not add packages unless absolutely necessary.
+- Invented sample data in `apps/web/src/lib/timetable/demo-data.ts`. Persistence is browser localStorage only (`apps/web/src/lib/storage.ts`).
+- Scheduling logic is plain TypeScript in `apps/web/src/lib/timetable/`. It must stay free of React and browser APIs so Node tests can import it with `.ts` extensions (`import type` for types; no enums).
+- The zero-clash rule still applies. `scheduler.ts` places classes; `validator.ts` is an independent checker. Never show a timetable as clash-free unless the validator returns `valid: true`, and never let the two share placement logic. Any manual move revalidates the whole timetable (`moves.ts`).
+- The rest of this file and `docs/` describe the full production platform. That remains the target and is **future work**; `apps/api`, `docker-compose.yml` and the `Makefile` are unused skeletons. Rules that need a server (tenancy, RLS, auth, audit, Zod/Pydantic validation, Punjabi at launch, the 150 KB student budget) apply when that work resumes, not to this prototype.
+
 ## Read first (in this order)
 
 1. `docs/PROJECT_SPEC.md`: what to build, roles, rules, decisions, open decisions.
@@ -23,7 +33,16 @@ Next.js + TypeScript + Tailwind + shadcn/ui + Lucide + Zod + React Hook Form (`a
 
 ## Commands
 
-Fill in during Phase 0 and keep current. Expected: `make dev`, `make test`, `make lint`, `make migrate`, `make seed`.
+Prototype (run from the repo root; Node 22.18+; Windows-friendly):
+
+- `npm run setup`: install web dependencies (once)
+- `npm run dev`: start the app at http://localhost:3000
+- `npm test`: Node test runner over `apps/web/tests/*.test.ts`
+- `npm run typecheck`, `npm run lint`, `npm run build`
+
+Definition of done for prototype changes: `npm test`, `npm run typecheck`, `npm run lint` and `npm run build` all pass.
+
+Full platform (future, not used by the prototype): `make dev`, `make test`, `make lint`, `make migrate`, `make seed` (needs Docker and uv).
 
 ## Non-negotiable rules
 

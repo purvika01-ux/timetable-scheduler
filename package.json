@@ -1,0 +1,14 @@
+{
+  "name": "college-timetable-optimizer",
+  "private": true,
+  "description": "Hackathon prototype. The app lives in apps/web; these scripts run it from the repo root.",
+  "scripts": {
+    "setup": "npm --prefix apps/web install",
+    "dev": "npm --prefix apps/web run dev",
+    "build": "npm --prefix apps/web run build",
+    "start": "npm --prefix apps/web run start",
+    "test": "npm --prefix apps/web test",
+    "typecheck": "npm --prefix apps/web run typecheck",
+    "lint": "npm --prefix apps/web run lint"
+  }
+}

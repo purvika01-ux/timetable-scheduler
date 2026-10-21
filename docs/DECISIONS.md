@@ -39,3 +39,17 @@ Scope: dev-only login, then the Timetable Coordinator dashboard (setup data, pre
 | C14 | `Idempotency-Key` on generate and import-confirm only | Double submits elsewhere (unique keys catch most). |
 
 Kept (not cut): C1 row-level security with a non-owner `api` role, set per transaction.
+
+## 2026-10-21: Frontend-only hackathon prototype (owner: Purvika)
+
+The owner directed a working prototype for the hackathon evaluation in place of the full-platform phases. This supersedes the TC dashboard slice above for now; that slice and the full plan remain future work.
+
+| Id | Decision |
+| --- | --- |
+| P1 | Frontend only: Next.js, React, TypeScript, Tailwind in `apps/web`. No Python, Docker, database, Redis, workers, external auth or paid services. No new packages. |
+| P2 | Primary role is the Teacher (sample teacher "Dr. Amandeep Singh", CSE). A generation demo covers the core requirement. |
+| P3 | Invented sample data; browser localStorage for availability and the teacher's timetable; reset with confirmation. |
+| P4 | Deterministic greedy TypeScript scheduler plus an independent validator; unplaced sessions reported with reasons; whole-section classes only (consistent with Q3, Q4, Q6). |
+| P5 | Teachers may move their own classes in the prototype to demonstrate live clash checking (in the product, moves belong to the coordinator). |
+| P6 | Tests use Node's built-in test runner instead of Vitest (not installed; no new packages). |
+| P7 | English only and 12-hour time in the prototype; Punjabi stays in the full plan. |
