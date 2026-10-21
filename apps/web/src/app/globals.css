@@ -1,0 +1,15 @@
+@import "tailwindcss";
+
+/* Full design tokens (UI_UX_GUIDELINES.md section 3) arrive in Phase 7. Light theme only at MVP. */
+:root {
+  --color-bg: #ffffff;
+  --color-text: #0f172a;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  /* Noto Sans is proposed (U4, OPEN); system fonts until decided. */
+  font-family: system-ui, "Segoe UI", Roboto, sans-serif;
+  line-height: 1.5;
+}
