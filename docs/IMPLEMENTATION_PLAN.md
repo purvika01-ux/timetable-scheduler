@@ -1,5 +1,7 @@
 # IMPLEMENTATION_PLAN.md
 
+> **Scope note (2026-10-21).** This document describes the full production platform, which is future work. The current build is a frontend-only prototype (Next.js, sample data, browser storage; no backend, database or Docker). For what exists now, see `CLAUDE.md`, `README.md` and `docs/DECISIONS.md` (P1 to P8); they win where this document disagrees about the prototype.
+
 Ordered phases. Work one phase at a time; do not start a phase until its dependencies pass acceptance. Each phase ends with tests green, lint clean, and docs updated. Items marked **ASK** need an owner decision first (see PROJECT_SPEC.md section 4); work on unblocked tasks meanwhile.
 
 Strategy: a thin end-to-end slice first (register, import, generate, edit, publish, student sees it), built on the real multi-college and security foundations, then widen. P2 and Later items are not in scope.

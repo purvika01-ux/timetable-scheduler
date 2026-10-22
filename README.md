@@ -57,17 +57,27 @@ Soft preferences (scored, not mandatory): spread a subject across the week, bala
 
 You need **Node.js 22.18 or newer** (Node 24 recommended). Check with `node --version`.
 
-From the repository folder in PowerShell, Command Prompt or Git Bash:
+1. Open a terminal (PowerShell, Command Prompt or Git Bash) in the **repository root**: the folder that contains this `README.md`, `package.json` and `apps\`. On this machine that is `C:\Users\anand\Desktop\timetable, hackathon 1`. Quote the path when changing into it, because it contains a comma and a space:
 
-```bash
-npm run setup
-```
+   ```bash
+   cd "C:\Users\anand\Desktop\timetable, hackathon 1"
+   ```
 
-```bash
-npm run dev
-```
+2. Install dependencies (first time only):
 
-Then open http://localhost:3000. The first page load compiles for 20 to 30 seconds; after that it is fast.
+   ```bash
+   npm run setup
+   ```
+
+3. Start the app:
+
+   ```bash
+   npm run dev
+   ```
+
+4. Open http://localhost:3000. The first page load compiles for 20 to 30 seconds; after that it is fast. Stop the server with Ctrl+C.
+
+The root scripts forward to the app in `apps\web`. You can also run `npm install` and `npm run dev` directly inside `apps\web`.
 
 Other commands (run from the repository root):
 
@@ -78,7 +88,7 @@ Other commands (run from the repository root):
 | `npm run lint` | ESLint |
 | `npm run build` then `npm start` | Production build and server |
 
-No environment variables, API keys, Docker, Python, or database are needed.
+No environment variables, API keys, Docker, Python, database or backend server are needed.
 
 ## Demo walkthrough (about 3 minutes)
 
@@ -117,13 +127,15 @@ The full design is in `docs/`. Among other items, it covers:
 - publishing with an undo window, and SMS and email alerts for changes
 - an offline-capable student view in English and Punjabi
 
-`apps/api`, `docker-compose.yml` and the `Makefile` are early skeletons for that backend. The prototype does not use them.
+None of that is built yet. The prototype contains no backend code.
 
 ## Repository layout
 
 ```
-apps/web/        The prototype (Next.js). Logic in src/lib/timetable, screens in src/app, UI in src/components
+package.json     Root scripts that forward to apps/web (setup, dev, test, build, ...)
+apps/web/        The prototype (Next.js). Screens in src/app, UI in src/components,
+                 scheduling logic in src/lib/timetable, localStorage in src/lib/storage.ts
 apps/web/tests/  Node tests for the scheduler, validator, moves, storage and queries
-apps/api/        Backend skeleton for the full platform (not used by the prototype)
-docs/            Product spec, technical plan, UI/UX guidelines, implementation plan, decisions
+docs/            Product spec, technical plan, UI/UX guidelines, implementation plan,
+                 architecture review, decision log (the full-platform design is future work)
 ```

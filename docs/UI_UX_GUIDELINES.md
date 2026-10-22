@@ -1,5 +1,7 @@
 # UI_UX_GUIDELINES.md
 
+> **Scope note (2026-10-21).** These guidelines apply to the current frontend-only prototype as well as the future platform. The prototype simplifies them: English only, system fonts, inline SVG icons instead of shadcn/ui and Lucide, and no service worker or offline cache.
+
 Design rules for the web app. Behaviour is in PROJECT_SPEC.md; this file says how it looks and feels. Open design items (U1 to U10) are in PROJECT_SPEC.md section 4: use the proposed defaults below as placeholders and ask before treating them as final.
 
 ## 1. Principles

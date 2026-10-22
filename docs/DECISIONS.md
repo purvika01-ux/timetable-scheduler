@@ -53,3 +53,4 @@ The owner directed a working prototype for the hackathon evaluation in place of 
 | P5 | Teachers may move their own classes in the prototype to demonstrate live clash checking (in the product, moves belong to the coordinator). |
 | P6 | Tests use Node's built-in test runner instead of Vitest (not installed; no new packages). |
 | P7 | English only and 12-hour time in the prototype; Punjabi stays in the full plan. |
+| P8 | Backend and infrastructure removed from the working tree to keep the prototype simple: `apps/api` (FastAPI skeleton and tests), `docker-compose.yml`, `Makefile`, Dockerfiles, `.env.example`. They remain in git history (commit `63ab442`). The full-platform documents stay as the future design. |

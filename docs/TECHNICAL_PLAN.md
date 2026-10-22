@@ -1,5 +1,7 @@
 # TECHNICAL_PLAN.md
 
+> **Scope note (2026-10-21).** This document describes the full production platform, which is future work. The current build is a frontend-only prototype (Next.js, sample data, browser storage; no backend, database or Docker). For what exists now, see `CLAUDE.md`, `README.md` and `docs/DECISIONS.md` (P1 to P8); they win where this document disagrees about the prototype.
+
 Architecture, data, API, security, and testing. Decisions and open items: PROJECT_SPEC.md sections 3 and 4.
 
 ## 1. Architecture

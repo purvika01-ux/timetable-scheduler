@@ -1,7 +1,9 @@
 # PROJECT_SPEC.md
 
+> **Scope note (2026-10-21).** This document describes the full production platform, which is future work. The current build is a frontend-only prototype (Next.js, sample data, browser storage; no backend, database or Docker). For what exists now, see `CLAUDE.md`, `README.md` and `docs/DECISIONS.md` (P1 to P8); they win where this document disagrees about the prototype.
+
 Product specification for the Punjab College Timetable Platform (working name; brand is open, see Open Decisions).
-Status: planning finalized on 2026-10-21. No code exists yet. Read CLAUDE.md first.
+Status: planning finalized on 2026-10-21. Read CLAUDE.md first.
 
 Release tags: **MVP** (first release), **P2** (Phase 2), **Later**. "Open" items must not be decided by Claude Code; ask the owner (see CLAUDE.md, "Decision protocol").
 

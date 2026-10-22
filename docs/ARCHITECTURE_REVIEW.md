@@ -1,5 +1,7 @@
 # ARCHITECTURE_REVIEW.md
 
+> **Scope note (2026-10-21).** This document describes the full production platform, which is future work. The current build is a frontend-only prototype (Next.js, sample data, browser storage; no backend, database or Docker). For what exists now, see `CLAUDE.md`, `README.md` and `docs/DECISIONS.md` (P1 to P8); they win where this document disagrees about the prototype.
+
 Pre-implementation review of the plan (CLAUDE.md, PROJECT_SPEC, TECHNICAL_PLAN, UI_UX_GUIDELINES, IMPLEMENTATION_PLAN). Date: 2026-10-21. Nothing is changed in those documents yet; each item says what to change once you decide.
 
 Basis and limits: reviewed against the five written documents and the earlier planning docs as summarised; I did not re-read every earlier doc line by line. Provider facts (regions, features) must be verified before relying on them.
