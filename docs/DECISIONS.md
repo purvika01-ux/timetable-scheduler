@@ -83,3 +83,11 @@ Answers to the decisions in `PRODUCT_AUDIT.md` section 11. The product becomes a
 | Id | Decision |
 | --- | --- |
 | M12 | The owner approved the implementation sequence in `IMPLEMENTATION_ROADMAP.md`: Phase 1 next, then Phases 2 to 11. Documentation is committed first as small commits; pushes need the owner's go-ahead each time. Open decisions stay open until answered before the phase they block. |
+
+## 2026-10-26: API foundation (owner: Purvika)
+
+| Id | Decision |
+| --- | --- |
+| M13 | The owner directed the API foundation (Express, TypeScript, MongoDB, Zod; roadmap Phase 4 scope without sign-in or tenant routes) to be built now, ahead of Phase 2 (shared core package and CI), on branch `api-foundation` created from `phase-1-any-college`. Shared API types live in `apps/api` and are mirrored by the web client until Phase 2 creates `packages/contracts`; a contract test runs the web client against the real API. |
+| M14 | Packages for the API, approved with exact versions: express 5.3.0, mongoose 9.11.4, zod 4.6.7, helmet 8.3.0, pino 10.4.0, pino-http 11.0.0, cors 2.8.6; dev: typescript 5.9.3, @types/express 5.0.6, @types/cors 2.8.19, @types/node 22.20.5, eslint 9.39.5, typescript-eslint 8.72.0, @eslint/js 9.39.5. No supertest, mongodb-memory-server or dotenv: tests use Node's test runner and fetch; configuration uses Node's `--env-file`. |
+| M15 | N12 (development and test database), answered: development uses the developer's local MongoDB service (database `timetable_dev`); integration tests start their own throwaway `mongod` (single-member replica set, random port, temporary folder) from the locally installed MongoDB and never touch the developer's data. N7 (test tooling) answered for the API: Node's built-in runner and fetch; browser end-to-end tooling stays open until it is needed. |

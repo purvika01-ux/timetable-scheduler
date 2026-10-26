@@ -2,7 +2,7 @@
 
 Dependency-aware plan from the working prototype to the multi-college MERN platform. It replaces `IMPLEMENTATION_PLAN.md` and the roadmap in `PRODUCT_AUDIT.md` section 10. Acceptance criteria ids (AC-…) and journeys (J1–J6) are defined in `PRODUCT_REQUIREMENTS.md` section 9; decision ids in its section 12.
 
-Status on 2026-10-26: sequence approved (M12). Phase 0 code complete and merged to `main`; the Vercel demo deploy is pending (owner). Phase 1 implemented on branch `phase-1-any-college` and checked in the browser; its manual acceptance test with someone outside the project is still to do.
+Status on 2026-10-26: sequence approved (M12). Phase 0 code complete and merged to `main`; the Vercel demo deploy is pending (owner). Phase 1 implemented on branch `phase-1-any-college` and checked in the browser; its manual acceptance test with someone outside the project is still to do. The API foundation part of Phase 4 (everything except tenant resources and the OpenAPI document) was moved ahead of Phase 2 by M13 and built on branch `api-foundation`.
 
 ---
 
