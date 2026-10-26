@@ -1,6 +1,6 @@
 # DECISIONS.md
 
-Decision log. Earlier decisions (D1 to D24, tokens, region, languages) are in PROJECT_SPEC.md section 3; open items are in section 4. This file records decisions taken since, and every scope cut (IMPLEMENTATION_PLAN.md, "Hackathon fast path").
+Decision log: every owner decision and scope cut, with date. Open items are listed in `PRODUCT_REQUIREMENTS.md` section 12.1; section 12.2 there shows how each earlier decision (D1 to D24, tokens, region, languages, Q, C and P items below) stands today. Entries below are never rewritten; later entries supersede earlier ones where they say so.
 
 ## 2026-10-21: TC dashboard slice (owner: Purvika)
 
@@ -71,3 +71,15 @@ Answers to the decisions in `PRODUCT_AUDIT.md` section 11. The product becomes a
 | M8 | Database host: MongoDB Atlas, Mumbai region, after confirming region availability and pricing. Resolves the database part of D4. |
 | M9 | Live link on Vercel (the owner creates the account and connects the repository). Prototype reaches GitHub by pushing `hackathon-prototype` and merging a pull request into `main` (default chosen; owner had no preference). Each push and deploy is still confirmed with the owner first. |
 | M10 | Packages: the list in the 2026-10-26 walkthrough is approved in principle (fast-check; express, mongoose, zod, helmet, express-rate-limit, pino; @node-rs/argon2, jose); exact packages and versions are confirmed at the start of each phase. MongoDB library: Mongoose. PostCSS advisory: pin a fixed PostCSS through npm `overrides` in Phase 0 if tests and build pass; upgrade to Next 16 in Phase 2. |
+
+## 2026-10-26: Definitive requirements and architecture documents (owner: Purvika)
+
+| Id | Decision |
+| --- | --- |
+| M11 | The owner directed a definitive document set for the MERN platform: `PRODUCT_REQUIREMENTS.md`, `ARCHITECTURE.md`, `DATABASE_DESIGN.md`, `API_DESIGN.md`, `SECURITY_MODEL.md`, `SCHEDULING_ENGINE.md`, `IMPLEMENTATION_ROADMAP.md`, and a rewritten `CLAUDE.md`. `PROJECT_SPEC.md`, `TECHNICAL_PLAN.md` and `IMPLEMENTATION_PLAN.md` are replaced by pointers (earlier text in git history at `e3f54c7`), completing the rewrite required by M1. The new documents are the design of record; items they mark OPEN or "proposed" (section 12.1 of `PRODUCT_REQUIREMENTS.md`) are not decided, and the implementation sequence awaits the owner's approval. |
+
+## 2026-10-26: Implementation sequence approved (owner: Purvika)
+
+| Id | Decision |
+| --- | --- |
+| M12 | The owner approved the implementation sequence in `IMPLEMENTATION_ROADMAP.md`: Phase 1 next, then Phases 2 to 11. Documentation is committed first as small commits; pushes need the owner's go-ahead each time. Open decisions stay open until answered before the phase they block. |
