@@ -24,7 +24,7 @@ You are signed in as a sample teacher, **Dr. Amandeep Singh** (Computer Science 
 | Teacher dashboard | Profile and department, today's date, next class with countdown, today's agenda (classes, free periods, lunch), upcoming classes this week, weekly load, day-by-day load bars, clash status |
 | My Timetable | Week grid (period rail, lab blocks span 2 periods, hatched lunch break, free cells, today highlighted) and a Day view with day switcher; subject colour plus code on every card; legend |
 | Class details | Dialog with subject, section, room, teacher, day, time and duration; "Move class" with clash-free suggestions and full revalidation before saving |
-| My Availability | Tap grid per period, whole-day toggle, unsaved-changes guard, validation (cannot drop below your weekly teaching load), warnings when a saved choice clashes with your current timetable, persisted in localStorage |
+| My Availability | Tap grid per period, whole-day toggle, unsaved-changes guard, validation (refuses availability your classes cannot fit, counting the daily limit and lab blocks), warnings when a saved choice clashes with your current timetable, persisted in localStorage |
 | Generate Timetable | Two sample data sets (standard, over-constrained stress test), deterministic seeded generator, regenerate with a new seed, results by teacher, section or room, clash counts, unplaced sessions with reasons, "use as my timetable" (only for a validated result, with confirmation) |
 | Profile | Teaching assignments, sample-data notice, reset demo data (with confirmation) |
 | Quality | Loading skeletons, empty states, success toasts, error and warning banners, keyboard-operable controls, visible focus, screen-reader labels on grid cells, responsive from 375 px phones to desktop |
@@ -35,8 +35,10 @@ You are signed in as a sample teacher, **Dr. Amandeep Singh** (Computer Science 
 - Teachers are never placed in periods they marked unavailable.
 - Room type (lecture or lab) and capacity must fit the section.
 - Labs are one 2-period block and never run across the lunch break or past the end of the day.
-- A teacher's daily teaching limit is respected.
-- Sessions that cannot be placed are **reported with reasons**, never dropped silently.
+- A teacher's daily teaching limit is respected, by the generator and by manual moves.
+- Each class lasts as long as its course needs and matches its course's teacher, subject and section; no course gets more sessions than it needs.
+- Sessions that cannot be placed are **reported with reasons**, never dropped silently. A result with unplaced sessions is labelled incomplete, can be applied only after a confirmation that lists them, and the dashboard keeps warning about them.
+- A saved timetable is re-checked when the app loads; one that breaks a rule is replaced by the sample, with a notice.
 
 Soft preferences (scored, not mandatory): spread a subject across the week, balance daily load for sections and teachers, labs in the afternoon, avoid first and last periods.
 
@@ -44,7 +46,7 @@ Soft preferences (scored, not mandatory): spread a subject across the week, bala
 
 `apps/web/src/lib/timetable/scheduler.ts` expands each course requirement into weekly sessions, places the most constrained sessions first (labs, teachers with few free periods, few suitable rooms), and gives each the lowest-penalty slot that breaks no hard rule. It retries with failed sessions first and keeps the best attempt. A seeded random tie-break makes runs reproducible: the same seed and inputs always give the same timetable.
 
-`apps/web/src/lib/timetable/validator.ts` is a separate checker that shares no placement logic with the generator. It re-checks every pair of classes and every rule. The UI calls a timetable clash-free only when the validator reports zero problems.
+`apps/web/src/lib/timetable/validator.ts` is a separate checker that shares no placement logic with the generator. It re-checks every pair of classes and every rule. The UI calls a timetable clash-free only when the validator reports zero problems, and complete only when every course has all of its weekly sessions (the validator reports these two separately).
 
 ## Technology
 

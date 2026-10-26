@@ -232,8 +232,8 @@ export default function GeneratePage() {
               </Banner>
             ) : unplaced.length === 0 ? (
               <Banner tone="success" title={`Clash-free timetable: all ${placed} sessions placed`}>
-                The independent validator re-checked every class: 0 teacher, 0 room and 0 section clashes, and every
-                availability, room and break rule holds. Seed {run.result.seed}, {Math.max(1, Math.round(run.durationMs))} ms.
+                The independent validator re-checked every class: 0 teacher, 0 room and 0 section clashes, every
+                availability, room, break and daily-limit rule holds, and every course has all its weekly sessions. Seed {run.result.seed}, {Math.max(1, Math.round(run.durationMs))} ms.
               </Banner>
             ) : (
               <Banner tone="warning" title={`Clash-free, but ${unplaced.length} ${unplaced.length === 1 ? "session" : "sessions"} could not be placed`}>
@@ -248,14 +248,23 @@ export default function GeneratePage() {
               <StatTile label="Teacher clashes" value={run.report.counts.teacher} tone={run.report.counts.teacher ? "danger" : "success"} />
               <StatTile label="Room clashes" value={run.report.counts.room} tone={run.report.counts.room ? "danger" : "success"} />
               <StatTile label="Section clashes" value={run.report.counts.section} tone={run.report.counts.section ? "danger" : "success"} />
-              <StatTile label="Other rule breaks" value={otherViolations} hint="availability, rooms, grid" tone={otherViolations ? "danger" : "success"} />
+              <StatTile label="Other rule breaks" value={otherViolations} hint="availability, rooms, grid, limits" tone={otherViolations ? "danger" : "success"} />
             </div>
 
             <div className="flex flex-wrap items-center gap-2 rounded-lg border border-line bg-white px-4 py-3">
               <span className="mr-auto flex items-center gap-2 text-sm">
                 <Stamp tone={run.report.valid ? "success" : "danger"}>{run.report.valid ? "Validated" : "Invalid"}</Stamp>
+                {run.report.valid && unplaced.length > 0 && <Stamp tone="warning">Incomplete</Stamp>}
                 <span className="text-ink-muted">
-                  {applied ? "Saved as your timetable." : canApply ? "Use this result as Dr. Amandeep Singh's timetable?" : run.datasetId !== "standard" ? "Stress-test results are for review only and cannot be applied." : "Only a validated result can be applied."}
+                  {applied
+                    ? "Saved as your timetable."
+                    : canApply
+                      ? unplaced.length > 0
+                        ? `Use this result anyway? ${unplaced.length} ${unplaced.length === 1 ? "session" : "sessions"} would be missing.`
+                        : "Use this result as Dr. Amandeep Singh's timetable?"
+                      : run.datasetId !== "standard"
+                        ? "Stress-test results are for review only and cannot be applied."
+                        : "Only a validated result can be applied."}
                 </span>
               </span>
               {applied ? (
@@ -361,11 +370,27 @@ export default function GeneratePage() {
 
       <ConfirmDialog
         open={confirmApply}
-        title="Replace your current timetable?"
-        confirmLabel="Use this timetable"
+        title={unplaced.length > 0 ? "Replace your timetable with an incomplete one?" : "Replace your current timetable?"}
+        confirmLabel={unplaced.length > 0 ? "Use incomplete timetable" : "Use this timetable"}
         onCancel={() => setConfirmApply(false)}
         onConfirm={applyToMyTimetable}
       >
+        {unplaced.length > 0 && (
+          <div className="mb-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-amber-950">
+            <p className="font-semibold">
+              {unplaced.length} {unplaced.length === 1 ? "session is" : "sessions are"} not placed and will be missing:
+            </p>
+            <ul className="mt-1 list-disc pl-4">
+              {unplaced.map((u) => (
+                <li key={`${u.requirementId}-${u.occurrence}`}>
+                  {lookup.subject(u.subjectId)?.code} {lookup.subject(u.subjectId)?.name}, {lookup.section(u.sectionId)?.name},{" "}
+                  {lookup.teacher(u.teacherId)?.name}
+                </li>
+              ))}
+            </ul>
+            <p className="mt-1">The dashboard will keep warning about them until a complete timetable is used.</p>
+          </div>
+        )}
         Your current timetable (including any classes you moved) will be replaced by this generated one, seed{" "}
         {run?.result.seed}. It is saved only in this browser. You can restore the original sample timetable from Profile,
         Reset demo data.

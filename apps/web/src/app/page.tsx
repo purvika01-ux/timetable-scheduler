@@ -40,6 +40,11 @@ export default function DashboardPage() {
   const mine = useMemo(() => timetable.entries.filter((e) => e.teacherId === teacher.id), [timetable, teacher.id]);
   const report = useMemo(() => validateTimetable(dataset, timetable.entries, availability), [dataset, timetable, availability]);
   const myIssues = report.issues.filter((i) => i.entryIds.some((id) => mine.some((e) => e.id === id)));
+  const onlyAvailability = myIssues.every((i) => i.kind === "availability");
+  const myMissing = report.missing
+    .map((m) => ({ ...m, req: lookup.requirement(m.requirementId) }))
+    .filter((m) => m.req?.teacherId === teacher.id);
+  const missingCount = myMissing.reduce((n, m) => n + m.missing, 0);
 
   if (!ready || !now) return <PageSkeleton />;
 
@@ -80,10 +85,14 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {myIssues.length > 0 ? (
+      {myIssues.length > 0 && (
         <Banner
-          tone="warning"
-          title={`${myIssues.length} of your classes no longer fit your saved availability`}
+          tone={onlyAvailability ? "warning" : "error"}
+          title={
+            onlyAvailability
+              ? `${myIssues.length} of your classes no longer fit your saved availability`
+              : `Your timetable has ${myIssues.length} ${myIssues.length === 1 ? "problem" : "problems"}`
+          }
           action={
             <ButtonLink href="/generate" variant="primary" icon="generate">
               Regenerate timetable
@@ -96,10 +105,31 @@ export default function DashboardPage() {
             ))}
           </ul>
         </Banner>
-      ) : (
+      )}
+      {missingCount > 0 && (
+        <Banner
+          tone="warning"
+          title={`${missingCount} of your weekly ${missingCount === 1 ? "session is" : "sessions are"} not scheduled`}
+          action={
+            <ButtonLink href="/generate" variant="primary" icon="generate">
+              Regenerate timetable
+            </ButtonLink>
+          }
+        >
+          <ul className="list-disc space-y-0.5 pl-4">
+            {myMissing.map((m) => (
+              <li key={m.requirementId}>
+                {lookup.subject(m.req!.subjectId)?.code} {lookup.subject(m.req!.subjectId)?.name},{" "}
+                {lookup.section(m.req!.sectionId)?.name}: {m.missing} of {m.req!.sessionsPerWeek} missing
+              </li>
+            ))}
+          </ul>
+        </Banner>
+      )}
+      {myIssues.length === 0 && missingCount === 0 && (
         <p className="flex items-center gap-2 text-sm text-success">
           <Icon name="checkCircle" className="h-4 w-4" />
-          Your timetable was checked just now: no teacher, room or section clashes.
+          Your timetable was checked just now: no clashes, and all your weekly sessions are scheduled.
         </p>
       )}
 
