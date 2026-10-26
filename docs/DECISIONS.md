@@ -54,3 +54,20 @@ The owner directed a working prototype for the hackathon evaluation in place of 
 | P6 | Tests use Node's built-in test runner instead of Vitest (not installed; no new packages). |
 | P7 | English only and 12-hour time in the prototype; Punjabi stays in the full plan. |
 | P8 | Backend and infrastructure removed from the working tree to keep the prototype simple: `apps/api` (FastAPI skeleton and tests), `docker-compose.yml`, `Makefile`, Dockerfiles, `.env.example`. They remain in git history (commit `63ab442`). The full-platform documents stay as the future design. |
+
+## 2026-10-26: MERN platform direction (owner: Purvika)
+
+Answers to the decisions in `PRODUCT_AUDIT.md` section 11. The product becomes a multi-college platform on MERN (MongoDB, Express, React, Node).
+
+| Id | Decision |
+| --- | --- |
+| M1 | MERN supersedes D1 (JWT issued by FastAPI; now issued by Express), D2 and C1 (PostgreSQL row-level security), D3 and C2 (Redis + RQ; PostgreSQL job table), C3 (exclusion constraints), Q1 (native PostgreSQL), the "PostgreSQL in an Indian region" wording (now: MongoDB in an Indian region), and P8 for the platform. CLAUDE.md, TECHNICAL_PLAN.md and IMPLEMENTATION_PLAN.md are to be rewritten for MERN. Rules that do not depend on the stack stay: Indian data region, tenant isolation with API checks, no access token in browser storage, append-only audit log, English and Punjabi, roles, permissions and business rules. |
+| M2 | Front end stays Next.js (React), talking to a separate Express API (D24 pattern). |
+| M3 | Order of work: Phase 0 (correctness fixes, push, deploy), then Phase 1 (browser-only "any college" setup), then the MERN backend (Phases 2 onwards in PRODUCT_AUDIT.md section 10). P1 (frontend only, no backend) stays in force until Phase 2 starts. |
+| M4 | The demo opens as the Coordinator, with a clearly marked demo role switcher to the Teacher view. Only coordinators move classes; teachers view their timetable and set availability. Supersedes P2 and P5. |
+| M5 | Solver: keep and improve the TypeScript heuristic (repair and local search), run in a Node worker thread. No Python solver service. Supersedes the OR-Tools CP-SAT plan. |
+| M6 | Job queue: stored in MongoDB (a jobs collection or a MongoDB-backed library). No Redis. |
+| M7 | Tenancy: shared collections with `collegeId` on every tenant document, enforced in one data-access layer, tested with two colleges on every endpoint. |
+| M8 | Database host: MongoDB Atlas, Mumbai region, after confirming region availability and pricing. Resolves the database part of D4. |
+| M9 | Live link on Vercel (the owner creates the account and connects the repository). Prototype reaches GitHub by pushing `hackathon-prototype` and merging a pull request into `main` (default chosen; owner had no preference). Each push and deploy is still confirmed with the owner first. |
+| M10 | Packages: the list in the 2026-10-26 walkthrough is approved in principle (fast-check; express, mongoose, zod, helmet, express-rate-limit, pino; @node-rs/argon2, jose); exact packages and versions are confirmed at the start of each phase. MongoDB library: Mongoose. PostCSS advisory: pin a fixed PostCSS through npm `overrides` in Phase 0 if tests and build pass; upgrade to Next 16 in Phase 2. |
