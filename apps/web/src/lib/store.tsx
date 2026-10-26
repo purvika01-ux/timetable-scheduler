@@ -2,143 +2,159 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
-import {
-  parseStoredAvailability,
-  parseStoredTimetable,
-  readStorage,
-  removeStorage,
-  STORAGE_KEYS,
-  type StoredAvailability,
-  type StoredTimetable,
-  type TimetableSource,
-  writeStorage,
-} from "./storage.ts";
-import { buildAvailability } from "./timetable/availability.ts";
-import { DEFAULT_DEMO_TEACHER_UNAVAILABLE, DEMO_TEACHER_ID, STANDARD_DATASET } from "./timetable/demo-data.ts";
-import { generateTimetable } from "./timetable/scheduler.ts";
-import type { AvailabilityMap, Dataset, ScheduledEntry, SlotKey, Teacher } from "./timetable/types.ts";
+import { LEGACY_KEYS, readStorage, removeStorage, STORAGE_KEYS, writeStorage } from "./storage.ts";
+import { pruneAvailability } from "./timetable/college.ts";
+import { STANDARD_DATASET } from "./timetable/demo-data.ts";
+import type { Dataset, ScheduledEntry, SlotKey, Teacher } from "./timetable/types.ts";
+import { parseWorkspace, reconcileTimetable, sampleWorkspace, type SavedTimetable, type TimetableSource, type Workspace } from "./workspace.ts";
 
-interface DemoStore {
+/** Demo role switcher: there is no sign-in in the prototype (M4). */
+export type Role = { kind: "coordinator" } | { kind: "teacher"; teacherId: string };
+
+interface WorkspaceStore {
   /** False until browser storage has been read (avoids hydration mismatches). */
   ready: boolean;
   dataset: Dataset;
-  teacher: Teacher;
-  myUnavailable: SlotKey[];
-  availabilitySavedAt: string | null;
-  /** Availability of every teacher in the standard dataset, including the demo teacher's. */
-  availability: AvailabilityMap;
-  saveMyUnavailable: (slots: SlotKey[]) => boolean;
-  timetable: StoredTimetable;
+  timetable: SavedTimetable | null;
+  role: Role;
+  /** The teacher being viewed in the teacher role, if any. */
+  viewTeacher: Teacher | null;
+  setRole: (role: Role) => void;
+  /** Saves edited college data and keeps the timetable in step; `removed` counts classes taken out. */
+  updateDataset: (next: Dataset) => { ok: boolean; removed: number };
+  setTeacherUnavailable: (teacherId: string, slots: SlotKey[]) => boolean;
   saveTimetable: (entries: ScheduledEntry[], source: TimetableSource, seed: number | null) => boolean;
-  resetDemo: () => void;
+  clearTimetable: () => boolean;
+  /** Replace everything (sample college, blank college, imported file). */
+  replaceWorkspace: (workspace: Workspace) => boolean;
   /** Problems found while loading stored data, shown once as a banner. */
   notices: string[];
   dismissNotices: () => void;
 }
 
-const DemoStoreContext = createContext<DemoStore | null>(null);
+const WorkspaceContext = createContext<WorkspaceStore | null>(null);
 
-function sampleTimetable(): StoredTimetable {
-  const availability = buildAvailability(STANDARD_DATASET.id, DEFAULT_DEMO_TEACHER_UNAVAILABLE);
-  const result = generateTimetable(STANDARD_DATASET, availability, { seed: 1 });
-  return {
-    version: 1,
-    datasetId: STANDARD_DATASET.id,
-    source: "sample",
-    seed: 1,
-    updatedAt: new Date().toISOString(),
-    entries: result.entries,
-  };
+function parseRole(raw: string | null): Role {
+  try {
+    const v = raw ? (JSON.parse(raw) as unknown) : null;
+    if (v && typeof v === "object" && "kind" in v) {
+      if (v.kind === "teacher" && "teacherId" in v && typeof v.teacherId === "string") return { kind: "teacher", teacherId: v.teacherId };
+    }
+  } catch {
+    // Fall through to the default.
+  }
+  return { kind: "coordinator" };
 }
 
-export function DemoStoreProvider({ children }: { children: React.ReactNode }) {
-  const dataset = STANDARD_DATASET;
-  const teacher = dataset.teachers.find((t) => t.id === DEMO_TEACHER_ID)!;
+export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = useState(false);
-  const [savedAvailability, setSavedAvailability] = useState<StoredAvailability | null>(null);
-  const [timetable, setTimetable] = useState<StoredTimetable>(sampleTimetable);
+  const [workspace, setWorkspace] = useState<Workspace>(() => sampleWorkspace(STANDARD_DATASET));
+  const [role, setRoleState] = useState<Role>({ kind: "coordinator" });
   const [notices, setNotices] = useState<string[]>([]);
 
   useEffect(() => {
     const found: string[] = [];
-    const avail = parseStoredAvailability(readStorage(STORAGE_KEYS.availability), dataset, DEMO_TEACHER_ID);
-    if (avail.problem) {
-      found.push(avail.problem);
-      removeStorage(STORAGE_KEYS.availability);
+    const parsed = parseWorkspace(readStorage(STORAGE_KEYS.workspace));
+    if (parsed.problem) {
+      found.push(parsed.problem);
+      removeStorage(STORAGE_KEYS.workspace);
     }
-    const tt = parseStoredTimetable(readStorage(STORAGE_KEYS.timetable), dataset);
-    if (tt.problem) {
-      found.push(tt.problem);
-      removeStorage(STORAGE_KEYS.timetable);
+    if (parsed.timetableProblem) found.push(parsed.timetableProblem);
+    if (LEGACY_KEYS.some((k) => readStorage(k) !== null)) {
+      LEGACY_KEYS.forEach(removeStorage);
+      if (!parsed.value) found.push("This browser had data from an earlier version of the demo. The sample college was loaded instead.");
     }
     // Reading browser storage must happen after mount; this one-time sync is intended.
-    setSavedAvailability(avail.value);
-    if (tt.value) setTimetable(tt.value);
+    if (parsed.value) setWorkspace(parsed.value);
+    setRoleState(parseRole(readStorage(STORAGE_KEYS.role)));
     setNotices(found);
     setReady(true);
-  }, [dataset]);
+  }, []);
 
-  const myUnavailable = savedAvailability?.unavailable ?? DEFAULT_DEMO_TEACHER_UNAVAILABLE;
-  const availability = useMemo(() => buildAvailability(dataset.id, myUnavailable), [dataset.id, myUnavailable]);
-
-  const saveMyUnavailable = useCallback((slots: SlotKey[]) => {
-    const value: StoredAvailability = {
-      version: 1,
-      teacherId: DEMO_TEACHER_ID,
-      unavailable: [...slots],
-      savedAt: new Date().toISOString(),
-    };
-    if (!writeStorage(STORAGE_KEYS.availability, value)) return false;
-    setSavedAvailability(value);
+  const persist = useCallback((next: Workspace) => {
+    if (!writeStorage(STORAGE_KEYS.workspace, next)) return false;
+    setWorkspace(next);
     return true;
   }, []);
 
-  const saveTimetable = useCallback(
-    (entries: ScheduledEntry[], source: TimetableSource, seed: number | null) => {
-      const value: StoredTimetable = {
-        version: 1,
-        datasetId: dataset.id,
-        source,
-        seed,
-        updatedAt: new Date().toISOString(),
-        entries,
-      };
-      if (!writeStorage(STORAGE_KEYS.timetable, value)) return false;
-      setTimetable(value);
-      return true;
+  const updateDataset = useCallback(
+    (next: Dataset) => {
+      const dataset = { ...next, availability: pruneAvailability(next) };
+      let removed = 0;
+      let timetable = workspace.timetable;
+      if (timetable) {
+        const result = reconcileTimetable(dataset, timetable.entries);
+        removed = result.removed;
+        if (removed > 0) timetable = { ...timetable, entries: result.entries, source: "edited", updatedAt: new Date().toISOString() };
+      }
+      return { ok: persist({ version: 1, dataset, timetable }), removed };
     },
-    [dataset.id],
+    [persist, workspace.timetable],
   );
 
-  const resetDemo = useCallback(() => {
-    removeStorage(STORAGE_KEYS.availability);
-    removeStorage(STORAGE_KEYS.timetable);
-    setSavedAvailability(null);
-    setTimetable(sampleTimetable());
-    setNotices([]);
+  const setTeacherUnavailable = useCallback(
+    (teacherId: string, slots: SlotKey[]) => {
+      const availability = { ...workspace.dataset.availability };
+      if (slots.length > 0) availability[teacherId] = [...slots];
+      else delete availability[teacherId];
+      return persist({ ...workspace, dataset: { ...workspace.dataset, availability } });
+    },
+    [persist, workspace],
+  );
+
+  const saveTimetable = useCallback(
+    (entries: ScheduledEntry[], source: TimetableSource, seed: number | null) =>
+      persist({ ...workspace, timetable: { source, seed, updatedAt: new Date().toISOString(), entries } }),
+    [persist, workspace],
+  );
+
+  const clearTimetable = useCallback(() => persist({ ...workspace, timetable: null }), [persist, workspace]);
+
+  const replaceWorkspace = useCallback(
+    (next: Workspace) => {
+      const ok = persist(next);
+      if (ok) setNotices([]);
+      return ok;
+    },
+    [persist],
+  );
+
+  const setRole = useCallback((next: Role) => {
+    writeStorage(STORAGE_KEYS.role, next);
+    setRoleState(next);
   }, []);
 
-  const value: DemoStore = {
+  const { dataset, timetable } = workspace;
+  // A teacher role pointing at a teacher who no longer exists falls back to the first teacher, or to the coordinator.
+  const effectiveRole: Role = useMemo(() => {
+    if (role.kind === "coordinator") return role;
+    if (dataset.teachers.some((t) => t.id === role.teacherId)) return role;
+    return dataset.teachers[0] ? { kind: "teacher", teacherId: dataset.teachers[0].id } : { kind: "coordinator" };
+  }, [role, dataset.teachers]);
+  const viewTeacher = effectiveRole.kind === "teacher" ? (dataset.teachers.find((t) => t.id === effectiveRole.teacherId) ?? null) : null;
+
+  const value: WorkspaceStore = {
     ready,
     dataset,
-    teacher,
-    myUnavailable,
-    availabilitySavedAt: savedAvailability?.savedAt ?? null,
-    availability,
-    saveMyUnavailable,
     timetable,
+    role: effectiveRole,
+    viewTeacher,
+    setRole,
+    updateDataset,
+    setTeacherUnavailable,
     saveTimetable,
-    resetDemo,
+    clearTimetable,
+    replaceWorkspace,
     notices,
     dismissNotices: () => setNotices([]),
   };
 
-  return <DemoStoreContext.Provider value={value}>{children}</DemoStoreContext.Provider>;
+  return <WorkspaceContext.Provider value={value}>{children}</WorkspaceContext.Provider>;
 }
 
-export function useDemoStore(): DemoStore {
-  const store = useContext(DemoStoreContext);
-  if (!store) throw new Error("useDemoStore must be used inside DemoStoreProvider");
+export function useWorkspace(): WorkspaceStore {
+  const store = useContext(WorkspaceContext);
+  if (!store) throw new Error("useWorkspace must be used inside WorkspaceProvider");
   return store;
 }
 
