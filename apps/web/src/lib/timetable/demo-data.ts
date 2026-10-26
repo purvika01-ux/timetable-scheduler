@@ -5,6 +5,7 @@ import type {
   AvailabilityMap,
   College,
   Dataset,
+  Department,
   Room,
   Section,
   SessionRequirement,
@@ -43,12 +44,18 @@ export const TIME_GRID: TimeGrid = {
   breaks: [{ afterPeriod: 4, start: "12:20", end: "13:00", label: "Lunch break" }],
 };
 
+export const DEPARTMENTS: Department[] = [
+  { id: "d-cse", code: "CSE", name: "Computer Science and Engineering" },
+  { id: "d-as", code: "AS", name: "Applied Sciences" },
+  { id: "d-hu", code: "HU", name: "Humanities" },
+];
+
 export const TEACHERS: Teacher[] = [
   {
     id: DEMO_TEACHER_ID,
     name: "Dr. Amandeep Singh",
     designation: "Associate Professor",
-    department: "Computer Science and Engineering",
+    departmentId: "d-cse",
     employeeId: "SVIT-CSE-014",
     email: "amandeep.singh@svit.example.edu",
     maxPeriodsPerDay: 5,
@@ -57,7 +64,7 @@ export const TEACHERS: Teacher[] = [
     id: "t-harpreet",
     name: "Prof. Harpreet Kaur",
     designation: "Professor",
-    department: "Computer Science and Engineering",
+    departmentId: "d-cse",
     employeeId: "SVIT-CSE-003",
     email: "harpreet.kaur@svit.example.edu",
     maxPeriodsPerDay: 5,
@@ -66,7 +73,7 @@ export const TEACHERS: Teacher[] = [
     id: "t-rajesh",
     name: "Dr. Rajesh Sharma",
     designation: "Associate Professor",
-    department: "Computer Science and Engineering",
+    departmentId: "d-cse",
     employeeId: "SVIT-CSE-009",
     email: "rajesh.sharma@svit.example.edu",
     maxPeriodsPerDay: 5,
@@ -75,7 +82,7 @@ export const TEACHERS: Teacher[] = [
     id: "t-simran",
     name: "Ms. Simran Gill",
     designation: "Assistant Professor",
-    department: "Computer Science and Engineering",
+    departmentId: "d-cse",
     employeeId: "SVIT-CSE-021",
     email: "simran.gill@svit.example.edu",
     maxPeriodsPerDay: 5,
@@ -84,7 +91,7 @@ export const TEACHERS: Teacher[] = [
     id: "t-gurpreet",
     name: "Mr. Gurpreet Sandhu",
     designation: "Assistant Professor",
-    department: "Computer Science and Engineering",
+    departmentId: "d-cse",
     employeeId: "SVIT-CSE-025",
     email: "gurpreet.sandhu@svit.example.edu",
     maxPeriodsPerDay: 5,
@@ -93,7 +100,7 @@ export const TEACHERS: Teacher[] = [
     id: "t-jaspreet",
     name: "Ms. Jaspreet Brar",
     designation: "Assistant Professor",
-    department: "Computer Science and Engineering",
+    departmentId: "d-cse",
     employeeId: "SVIT-CSE-027",
     email: "jaspreet.brar@svit.example.edu",
     maxPeriodsPerDay: 5,
@@ -102,7 +109,7 @@ export const TEACHERS: Teacher[] = [
     id: "t-neha",
     name: "Dr. Neha Bansal",
     designation: "Associate Professor",
-    department: "Applied Sciences (Mathematics)",
+    departmentId: "d-as",
     employeeId: "SVIT-AS-006",
     email: "neha.bansal@svit.example.edu",
     maxPeriodsPerDay: 5,
@@ -111,7 +118,7 @@ export const TEACHERS: Teacher[] = [
     id: "t-manjit",
     name: "Prof. Manjit Dhillon",
     designation: "Visiting Faculty",
-    department: "Humanities",
+    departmentId: "d-hu",
     employeeId: "SVIT-HU-V02",
     email: "manjit.dhillon@svit.example.edu",
     maxPeriodsPerDay: 4,
@@ -123,8 +130,8 @@ export const ROOMS: Room[] = [
   { id: "r-102", name: "Room 102", type: "lecture", capacity: 66, building: "Block A" },
   { id: "r-204", name: "Room 204", type: "lecture", capacity: 60, building: "Block B" },
   { id: "r-205", name: "Room 205", type: "lecture", capacity: 50, building: "Block B" },
-  { id: "r-lab1", name: "Programming Lab 1", type: "lab", capacity: 64, building: "CSE Block" },
-  { id: "r-lab2", name: "Networks Lab", type: "lab", capacity: 60, building: "CSE Block" },
+  { id: "r-lab1", name: "Programming Lab 1", type: "lab", capacity: 64, building: "CSE Block", departmentId: "d-cse" },
+  { id: "r-lab2", name: "Networks Lab", type: "lab", capacity: 60, building: "CSE Block", departmentId: "d-cse" },
 ];
 
 export const SUBJECTS: Subject[] = [
@@ -146,10 +153,10 @@ export const SUBJECTS: Subject[] = [
 ];
 
 export const SECTIONS: Section[] = [
-  { id: "s-3a", name: "CSE 3A", programme: "B.Tech CSE", semester: 3, strength: 62 },
-  { id: "s-3b", name: "CSE 3B", programme: "B.Tech CSE", semester: 3, strength: 58 },
-  { id: "s-5a", name: "CSE 5A", programme: "B.Tech CSE", semester: 5, strength: 55 },
-  { id: "s-5b", name: "CSE 5B", programme: "B.Tech CSE", semester: 5, strength: 48 },
+  { id: "s-3a", name: "CSE 3A", programme: "B.Tech CSE", semester: 3, strength: 62, departmentId: "d-cse" },
+  { id: "s-3b", name: "CSE 3B", programme: "B.Tech CSE", semester: 3, strength: 58, departmentId: "d-cse" },
+  { id: "s-5a", name: "CSE 5A", programme: "B.Tech CSE", semester: 5, strength: 55, departmentId: "d-cse" },
+  { id: "s-5b", name: "CSE 5B", programme: "B.Tech CSE", semester: 5, strength: 48, departmentId: "d-cse" },
 ];
 
 function theory(id: string, subjectId: string, teacherId: string, sectionId: string, perWeek: number) {
@@ -215,11 +222,13 @@ export const STANDARD_DATASET: Dataset = {
   description: "4 sections, 8 teachers, 6 rooms, 30 course requirements. Everything should fit.",
   college: COLLEGE,
   grid: TIME_GRID,
+  departments: DEPARTMENTS,
   teachers: TEACHERS,
   rooms: ROOMS,
   subjects: SUBJECTS,
   sections: SECTIONS,
   requirements: REQUIREMENTS,
+  availability: { ...OTHER_TEACHER_AVAILABILITY, [DEMO_TEACHER_ID]: DEFAULT_DEMO_TEACHER_UNAVAILABLE },
 };
 
 // Over-constrained variant: shows how sessions that cannot be placed are reported.
@@ -227,7 +236,7 @@ const EXTRA_TEACHER: Teacher = {
   id: "t-kuldeep",
   name: "Prof. Kuldeep Arora",
   designation: "Visiting Faculty",
-  department: "Computer Science and Engineering",
+  departmentId: "d-cse",
   employeeId: "SVIT-CSE-V05",
   email: "kuldeep.arora@svit.example.edu",
   maxPeriodsPerDay: 2,
@@ -239,6 +248,7 @@ const EXTRA_SECTION: Section = {
   programme: "B.Tech CSE",
   semester: 7,
   strength: 85,
+  departmentId: "d-cse",
 };
 
 const EXTRA_SUBJECTS: Subject[] = [
@@ -246,6 +256,16 @@ const EXTRA_SUBJECTS: Subject[] = [
   { id: "sub-cd", code: "CS703", name: "Compiler Design", kind: "theory", color: "violet" },
   { id: "sub-iot", code: "CS751", name: "IoT Workshop", kind: "lab", color: "orange" },
 ];
+
+export const OVER_CONSTRAINED_EXTRA_AVAILABILITY: AvailabilityMap = {
+  "t-kuldeep": [
+    ...(["mon", "tue", "wed", "thu", "fri"] as const).flatMap((d) =>
+      [1, 2, 3, 4, 5, 6, 7, 8].map((p) => `${d}-${p}` as const),
+    ),
+    "sat-3",
+    "sat-4",
+  ],
+};
 
 export const OVER_CONSTRAINED_DATASET: Dataset = {
   ...STANDARD_DATASET,
@@ -262,16 +282,7 @@ export const OVER_CONSTRAINED_DATASET: Dataset = {
     theory("q-cd-7a", "sub-cd", "t-rajesh", "s-7a", 2),
     lab("q-iot-5b", "sub-iot", "t-gurpreet", "s-5b", "workshop"),
   ],
-};
-
-export const OVER_CONSTRAINED_EXTRA_AVAILABILITY: AvailabilityMap = {
-  "t-kuldeep": [
-    ...(["mon", "tue", "wed", "thu", "fri"] as const).flatMap((d) =>
-      [1, 2, 3, 4, 5, 6, 7, 8].map((p) => `${d}-${p}` as const),
-    ),
-    "sat-3",
-    "sat-4",
-  ],
+  availability: { ...STANDARD_DATASET.availability, ...OVER_CONSTRAINED_EXTRA_AVAILABILITY },
 };
 
 export const DATASETS: Dataset[] = [STANDARD_DATASET, OVER_CONSTRAINED_DATASET];

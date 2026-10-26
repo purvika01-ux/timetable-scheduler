@@ -37,21 +37,30 @@ export interface TimeGrid {
 
 export type RoomType = "lecture" | "lab" | "workshop";
 
+export interface Department {
+  id: string;
+  code: string;
+  name: string;
+}
+
 export interface Room {
   id: string;
   name: string;
   type: RoomType;
   capacity: number;
   building: string;
+  /** Owning department. Absent means the room is shared by all departments. */
+  departmentId?: string;
 }
 
 export interface Teacher {
   id: string;
   name: string;
   designation: string;
-  department: string;
+  departmentId: string;
   employeeId: string;
-  email: string;
+  /** Optional: many teachers have no institutional email. */
+  email?: string;
   maxPeriodsPerDay: number;
 }
 
@@ -85,6 +94,7 @@ export interface Section {
   programme: string;
   semester: number;
   strength: number;
+  departmentId: string;
 }
 
 /** "Section X needs N sessions of subject Y per week, taught by teacher Z." */
@@ -126,11 +136,14 @@ export interface Dataset {
   description: string;
   college: College;
   grid: TimeGrid;
+  departments: Department[];
   teachers: Teacher[];
   rooms: Room[];
   subjects: Subject[];
   sections: Section[];
   requirements: SessionRequirement[];
+  /** Unavailable periods per teacher. */
+  availability: AvailabilityMap;
 }
 
 export interface UnplacedSession {
@@ -159,6 +172,7 @@ export type IssueKind =
   | "availability"
   | "capacity"
   | "roomType"
+  | "roomAccess"
   | "grid"
   | "dailyLimit"
   | "requirement"

@@ -1,6 +1,7 @@
 // Manual moves. Every candidate is checked by re-validating the whole timetable.
 
 import { DAY_ORDER, validStarts } from "./grid.ts";
+import { eligibleRooms } from "./rooms.ts";
 import type { AvailabilityMap, Dataset, DayId, ScheduledEntry, ValidationIssue } from "./types.ts";
 import { issuesForEntry, validateTimetable } from "./validator.ts";
 
@@ -35,10 +36,10 @@ export function findValidMoves(
   entry: ScheduledEntry,
 ): MoveTarget[] {
   const req = dataset.requirements.find((r) => r.id === entry.requirementId);
-  const section = dataset.sections.find((s) => s.id === entry.sectionId);
-  const rooms = dataset.rooms
-    .filter((r) => r.type === (req?.roomType ?? "lecture") && r.capacity >= (section?.strength ?? 0))
-    .sort((a, b) => Number(b.id === entry.roomId) - Number(a.id === entry.roomId) || a.capacity - b.capacity);
+  if (!req) return [];
+  const rooms = eligibleRooms(dataset, req).sort(
+    (a, b) => Number(b.id === entry.roomId) - Number(a.id === entry.roomId) || a.capacity - b.capacity,
+  );
   const targets: MoveTarget[] = [];
   for (const day of DAY_ORDER) {
     for (const startPeriod of validStarts(dataset.grid, day, entry.span)) {
