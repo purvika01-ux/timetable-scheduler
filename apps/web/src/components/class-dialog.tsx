@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { entryTimes, formatRange, PERIOD_MINUTES, periodLabel, validStarts } from "@/lib/timetable/grid";
 import type { Lookup } from "@/lib/timetable/lookup";
 import { checkMove, findValidMoves, type MoveTarget } from "@/lib/timetable/moves";
+import { roomUsableBy } from "@/lib/timetable/rooms";
 import type { AvailabilityMap, Dataset, DayId, ScheduledEntry, ValidationIssue } from "@/lib/timetable/types";
 
 import { Icon, type IconName } from "./icons";
@@ -169,7 +170,8 @@ function MoveForm({
   }, [issues]);
 
   const req = lookup.requirement(entry.requirementId);
-  const rooms = dataset.rooms.filter((r) => r.type === (req?.roomType ?? "lecture"));
+  const sectionDept = lookup.section(entry.sectionId)?.departmentId;
+  const rooms = dataset.rooms.filter((r) => r.type === (req?.roomType ?? "lecture") && roomUsableBy(r, sectionDept));
   const starts = validStarts(grid, day, entry.span);
   const suggestions = useMemo(
     () => (open ? findValidMoves(dataset, entries, availability, entry) : []),

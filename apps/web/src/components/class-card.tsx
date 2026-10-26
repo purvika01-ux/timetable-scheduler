@@ -6,7 +6,7 @@ import { Icon } from "./icons";
 import { SUBJECT_STYLE } from "./subject-style";
 import { cx } from "./ui";
 
-export type Perspective = "teacher" | "section" | "room";
+export type Perspective = "teacher" | "section" | "room" | "department";
 
 /** Accessible description, e.g. "Data Structures, CSE 3A, Room 101, Monday 9:50 AM – 10:40 AM". */
 export function describeEntry(entry: ScheduledEntry, lookup: Lookup, grid: TimeGrid): string {
@@ -55,10 +55,15 @@ export function ClassCard({
             { icon: "user" as const, text: teacher },
             { icon: "pin" as const, text: room },
           ]
-        : [
-            { icon: "users" as const, text: section },
-            { icon: "user" as const, text: teacher },
-          ];
+        : perspective === "department"
+          ? [
+              { icon: "users" as const, text: section },
+              { icon: "pin" as const, text: room },
+            ]
+          : [
+              { icon: "users" as const, text: section },
+              { icon: "user" as const, text: teacher },
+            ];
 
   const body = (
     <>

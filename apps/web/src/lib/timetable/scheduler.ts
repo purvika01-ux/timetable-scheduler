@@ -10,6 +10,7 @@
 
 import { teachingCapacity } from "./capacity.ts";
 import { coveredPeriods, DAY_ORDER, validStarts } from "./grid.ts";
+import { eligibleRooms } from "./rooms.ts";
 import type {
   AvailabilityMap,
   Dataset,
@@ -84,16 +85,13 @@ class Occupancy {
 function buildTasks(dataset: Dataset, availability: AvailabilityMap): SessionTask[] {
   const tasks: SessionTask[] = [];
   for (const req of dataset.requirements) {
-    const section = dataset.sections.find((s) => s.id === req.sectionId);
     const unavailable = new Set(availability[req.teacherId] ?? []);
     const slots = DAY_ORDER.flatMap((day) =>
       validStarts(dataset.grid, day, req.span)
         .filter((start) => coveredPeriods(start, req.span).every((p) => !unavailable.has(`${day}-${p}`)))
         .map((start) => ({ day, start })),
     );
-    const rooms = dataset.rooms
-      .filter((r) => r.type === req.roomType && r.capacity >= (section?.strength ?? Infinity))
-      .sort((a, b) => a.capacity - b.capacity);
+    const rooms = eligibleRooms(dataset, req);
     for (let occurrence = 1; occurrence <= req.sessionsPerWeek; occurrence++) {
       tasks.push({ req, occurrence, slots, rooms, difficulty: slots.length * rooms.length });
     }
@@ -178,12 +176,18 @@ function explain(
 
   if (task.rooms.length === 0) {
     const ofType = dataset.rooms.filter((r) => r.type === req.roomType);
+    const bigEnough = ofType.filter((r) => r.capacity >= (section?.strength ?? Infinity));
     if (ofType.length === 0) {
       reasons.push(`The college has no ${req.roomType} room.`);
-    } else {
+    } else if (bigEnough.length === 0) {
       const largest = Math.max(...ofType.map((r) => r.capacity));
       reasons.push(
         `No ${req.roomType} room seats ${section?.strength} students (the largest holds ${largest}).`,
+      );
+    } else {
+      const owners = [...new Set(bigEnough.map((r) => dataset.departments.find((d) => d.id === r.departmentId)?.name ?? "another department"))];
+      reasons.push(
+        `Every ${req.roomType} room large enough for ${section?.name ?? "this section"} belongs to another department (${owners.join(", ")}). Share a room or add one.`,
       );
     }
   }

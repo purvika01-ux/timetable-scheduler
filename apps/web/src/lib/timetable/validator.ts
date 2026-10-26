@@ -20,6 +20,7 @@ const KINDS: IssueKind[] = [
   "availability",
   "capacity",
   "roomType",
+  "roomAccess",
   "grid",
   "dailyLimit",
   "requirement",
@@ -52,6 +53,7 @@ export function validateTimetable(
   const subject = new Map(dataset.subjects.map((s) => [s.id, s]));
   const requirement = new Map(dataset.requirements.map((r) => [r.id, r]));
   const dayConfig = new Map(dataset.grid.days.map((d) => [d.id, d]));
+  const department = new Map(dataset.departments.map((d) => [d.id, d]));
   const label = (e: ScheduledEntry) =>
     `${subject.get(e.subjectId)?.code ?? e.subjectId} (${section.get(e.sectionId)?.name ?? e.sectionId}, ${dayConfig.get(e.day)?.short ?? e.day} P${e.startPeriod})`;
 
@@ -167,6 +169,13 @@ export function validateTimetable(
         kind: "capacity",
         entryIds: [e.id],
         message: `${r.name} seats ${r.capacity}, but ${s.name} has ${s.strength} students.`,
+      });
+    }
+    if (r.departmentId && r.departmentId !== s.departmentId) {
+      issues.push({
+        kind: "roomAccess",
+        entryIds: [e.id],
+        message: `${r.name} belongs to ${department.get(r.departmentId)?.name ?? "another department"}, so ${s.name} cannot use it.`,
       });
     }
     if (req.roomType !== r.type) {

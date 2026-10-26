@@ -1,0 +1,43 @@
+{
+  "name": "timetable-api",
+  "version": "0.1.0",
+  "private": true,
+  "description": "College Timetable Optimizer REST API (Express, TypeScript, MongoDB).",
+  "type": "module",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "dev": "node --watch --env-file-if-exists=.env src/server.ts",
+    "start": "node --env-file-if-exists=.env dist/server.js",
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "node --test \"tests/**/*.test.ts\"",
+    "test:unit": "node --test \"tests/unit/**/*.test.ts\"",
+    "test:integration": "node --test \"tests/integration/**/*.test.ts\"",
+    "keys:generate": "node scripts/generate-keys.ts",
+    "admin:create": "node --env-file-if-exists=.env scripts/create-platform-admin.ts"
+  },
+  "dependencies": {
+    "@node-rs/argon2": "2.2.2",
+    "cors": "2.8.6",
+    "express": "5.3.0",
+    "express-rate-limit": "8.7.1",
+    "helmet": "8.3.0",
+    "jose": "6.2.13",
+    "mongoose": "9.11.4",
+    "pino": "10.4.0",
+    "pino-http": "11.0.0",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.39.5",
+    "@types/cors": "2.8.19",
+    "@types/express": "5.0.6",
+    "@types/node": "22.20.5",
+    "eslint": "9.39.5",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.72.0"
+  }
+}

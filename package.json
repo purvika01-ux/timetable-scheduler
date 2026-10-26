@@ -1,14 +1,21 @@
 {
   "name": "college-timetable-optimizer",
   "private": true,
-  "description": "Hackathon prototype. The app lives in apps/web; these scripts run it from the repo root.",
+  "description": "College Timetable Optimizer: web app in apps/web, REST API in apps/api. These scripts run them from the repo root.",
   "scripts": {
-    "setup": "npm --prefix apps/web install",
+    "setup": "npm --prefix apps/web install && npm --prefix apps/api install",
     "dev": "npm --prefix apps/web run dev",
-    "build": "npm --prefix apps/web run build",
+    "dev:api": "npm --prefix apps/api run dev",
+    "build": "npm --prefix apps/web run build && npm --prefix apps/api run build",
     "start": "npm --prefix apps/web run start",
-    "test": "npm --prefix apps/web test",
-    "typecheck": "npm --prefix apps/web run typecheck",
-    "lint": "npm --prefix apps/web run lint"
+    "start:api": "npm --prefix apps/api run start",
+    "test": "npm --prefix apps/web test && npm --prefix apps/api test",
+    "test:web": "npm --prefix apps/web test",
+    "test:api": "npm --prefix apps/api test",
+    "test:api:unit": "npm --prefix apps/api run test:unit",
+    "test:api:integration": "npm --prefix apps/api run test:integration",
+    "typecheck": "npm --prefix apps/web run typecheck && npm --prefix apps/api run typecheck",
+    "lint": "npm --prefix apps/web run lint && npm --prefix apps/api run lint",
+    "admin:create": "npm --prefix apps/api run admin:create"
   }
 }

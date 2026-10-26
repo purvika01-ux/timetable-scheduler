@@ -1,14 +1,17 @@
-import { Fragment } from "react";
+import { Fragment, useState } from "react";
 
 import { formatTime } from "@/lib/timetable/grid";
 import type { Lookup } from "@/lib/timetable/lookup";
 import type { DayId, ScheduledEntry, TimeGrid } from "@/lib/timetable/types";
 
 import { ClassCard, type Perspective } from "./class-card";
+import { RoutineTable } from "./routine-table";
 import { SUBJECT_STYLE } from "./subject-style";
 import { cx } from "./ui";
 
-/** Weekly grid: period rail on the left, days across (table semantics for screen readers). */
+export { RoutineTable };
+
+/** Weekly grid: defaults to institutional routine table, with period rail view toggle. */
 export function WeekGrid({
   grid,
   entries,
@@ -18,6 +21,7 @@ export function WeekGrid({
   flaggedIds,
   highlightDay,
   caption,
+  defaultLayout = "routine",
 }: {
   grid: TimeGrid;
   entries: ScheduledEntry[];
@@ -27,7 +31,10 @@ export function WeekGrid({
   flaggedIds?: Set<string>;
   highlightDay?: DayId | null;
   caption: string;
+  defaultLayout?: "routine" | "rail";
 }) {
+  const [layout, setLayout] = useState<"routine" | "rail">(defaultLayout);
+
   const maxPeriods = Math.max(...grid.days.map((d) => d.periodCount));
   const periods = grid.periods.filter((p) => p.number <= maxPeriods);
 
@@ -37,9 +44,60 @@ export function WeekGrid({
     entries.some((e) => e.day === day && e.startPeriod < period && e.startPeriod + e.span > period);
 
   return (
-    <div className="relative overflow-x-auto rounded-lg border border-line bg-white">
-      <table className="w-full min-w-[820px] table-fixed border-collapse text-sm">
-        <caption className="sr-only">{caption}</caption>
+    <div className="space-y-3">
+      {/* Top Layout Format Switcher */}
+      <div className="no-print flex items-center justify-between gap-3 border-b border-line pb-2">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold uppercase tracking-wider text-[#1E3A8A]">
+            Timetable Format
+          </span>
+          <span className="rounded bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
+            {layout === "routine" ? "Institutional Routine (Color-Coded)" : "Period Rail View"}
+          </span>
+        </div>
+        <div className="inline-flex rounded-lg border border-line bg-surface p-0.5 text-xs">
+          <button
+            type="button"
+            onClick={() => setLayout("routine")}
+            className={cx(
+              "rounded-md px-3 py-1 font-semibold transition-all",
+              layout === "routine"
+                ? "bg-[#1E3A8A] text-white shadow-xs"
+                : "text-ink hover:text-ink-strong",
+            )}
+          >
+            Institutional Routine
+          </button>
+          <button
+            type="button"
+            onClick={() => setLayout("rail")}
+            className={cx(
+              "rounded-md px-3 py-1 font-semibold transition-all",
+              layout === "rail"
+                ? "bg-[#1E3A8A] text-white shadow-xs"
+                : "text-ink hover:text-ink-strong",
+            )}
+          >
+            Period Rail
+          </button>
+        </div>
+      </div>
+
+      {layout === "routine" ? (
+        <RoutineTable
+          grid={grid}
+          entries={entries}
+          lookup={lookup}
+          title={caption}
+          onSelect={onSelect}
+          flaggedIds={flaggedIds}
+          highlightDay={highlightDay}
+          perspective={perspective}
+        />
+      ) : (
+        <div className="relative overflow-x-auto rounded-lg border border-line bg-white">
+          <table className="w-full min-w-[820px] table-fixed border-collapse text-sm">
+            <caption className="sr-only">{caption}</caption>
         <colgroup>
           <col className="w-[92px]" />
           {grid.days.map((d) => (
@@ -142,6 +200,8 @@ export function WeekGrid({
         </tbody>
       </table>
     </div>
+    )}
+  </div>
   );
 }
 

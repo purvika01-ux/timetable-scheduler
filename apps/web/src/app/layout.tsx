@@ -2,13 +2,14 @@ import type { Metadata, Viewport } from "next";
 
 import { AppShell } from "@/components/app-shell";
 import { ToastProvider } from "@/components/toast";
-import { DemoStoreProvider } from "@/lib/store";
+import { AuthProvider } from "@/lib/auth-context";
+import { WorkspaceProvider } from "@/lib/store";
 
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: { default: "College Timetable Optimizer", template: "%s · College Timetable Optimizer" },
-  description: "Clash-free college timetables for teachers and coordinators. Hackathon prototype with sample data.",
+  description: "Clash-free college timetables for any college: set up your data, generate, adjust and share. Prototype; data stays in this browser.",
 };
 
 export const viewport: Viewport = {
@@ -19,11 +20,13 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en">
       <body className="antialiased">
-        <DemoStoreProvider>
-          <ToastProvider>
-            <AppShell>{children}</AppShell>
-          </ToastProvider>
-        </DemoStoreProvider>
+        <AuthProvider>
+          <WorkspaceProvider>
+            <ToastProvider>
+              <AppShell>{children}</AppShell>
+            </ToastProvider>
+          </WorkspaceProvider>
+        </AuthProvider>
       </body>
     </html>
   );

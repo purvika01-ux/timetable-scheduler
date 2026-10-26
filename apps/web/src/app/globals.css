@@ -64,3 +64,45 @@ dialog::backdrop {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Printing ("Save as PDF" from the browser's print dialog): only the content, full width. */
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 10mm;
+  }
+  .no-print {
+    display: none !important;
+  }
+  body,
+  .bg-surface {
+    background: #ffffff !important;
+  }
+  .md\:pl-60 {
+    padding-left: 0 !important;
+  }
+  main {
+    max-width: none !important;
+    padding: 0 !important;
+  }
+  table {
+    min-width: 0 !important;
+  }
+  .overflow-x-auto {
+    overflow: visible !important;
+  }
+  tr,
+  td {
+    break-inside: avoid;
+  }
+}
+
+.print-only {
+  display: none;
+}
+
+@media print {
+  .print-only {
+    display: block;
+  }
+}

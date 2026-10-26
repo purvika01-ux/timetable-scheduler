@@ -4,9 +4,10 @@ College Timetable Optimizer: clash-free timetables for colleges in Punjab. Start
 
 ## Where things stand
 
-- **Built:** a frontend-only prototype in `apps/web` (Next.js, sample data, browser storage), with Phase 0 correctness fixes. It is the baseline: nothing in it is removed until its replacement passes its acceptance criteria.
-- **Designed, not built:** the platform (Express API, MongoDB, worker, shared packages). See the documents below.
-- **Next work:** the sequence in `docs/IMPLEMENTATION_ROADMAP.md`, once the owner approves it. Until Phase 2 starts, the prototype rules below apply in full (no backend, no database, no new packages).
+- **Built:** a frontend-only prototype in `apps/web` (Next.js, browser storage): Phase 0 correctness fixes and Phase 1, where a coordinator sets up any college, checks it, generates, adjusts, prints and saves it as a file, and a Demo view shows any teacher's view. It is the baseline: nothing in it is removed until its replacement passes its acceptance criteria.
+- **API foundation built** (`apps/api`, decisions M13 to M15): Express 5, TypeScript, MongoDB through Mongoose, Zod validation, health endpoints, central errors, security middleware, tenant-scoping plugin, collections and indexes for the first platform and college-owned records. No sign-in and no data endpoints yet; no screen uses the API yet (the web client is `apps/web/src/lib/api/client.ts`).
+- **Designed, not built:** the rest of the platform (sign-in, data endpoints, worker, shared packages). See the documents below.
+- **Next work:** the sequence in `docs/IMPLEMENTATION_ROADMAP.md` (approved, M12; the API foundation was moved ahead of Phase 2 by M13). The web app's screens stay browser-only until their phase moves them to the API.
 
 ## Documents (source of truth)
 
@@ -38,17 +39,23 @@ College Timetable Optimizer: clash-free timetables for colleges in Punjab. Start
 ## Prototype (`apps/web`) today
 
 - Stack: Next.js 15 (App Router), React 19, TypeScript, Tailwind CSS 4. No other runtime dependencies. Icons are inline SVG (`src/components/icons.tsx`); dialogs use native `<dialog>`. PostCSS is pinned through npm `overrides`.
-- Data is invented sample data (`src/lib/timetable/demo-data.ts`). Persistence is browser localStorage only (`src/lib/storage.ts`, keys `cto.*.v1`). Stored data is parsed defensively and revalidated; bad data falls back to the sample with a notice.
+- The college being worked on (data plus timetable) is one "workspace" in browser localStorage (`cto.workspace.v1`; the demo role in `cto.role.v1`). It opens with invented sample data (`src/lib/timetable/demo-data.ts`). Stored data and opened files are parsed strictly (`src/lib/workspace.ts`); a clash or damaged data is refused with a notice. Data edits reconcile the timetable (classes that no longer match their course are removed and shown as missing).
+- There is no sign-in: the Demo view switch (coordinator or any teacher) stands in for roles (M4). Only coordinators edit data or move classes.
 - The prototype needs no environment variables or secrets.
 
 ```
-src/app/            Pages: / (dashboard), /timetable, /availability, /generate, /profile
-src/components/     App shell, week grid, day agenda, class card and dialog, modal, toast, UI kit
-src/lib/store.tsx   React context: dataset, availability, current timetable, save/reset
-src/lib/storage.ts  localStorage read/write and validating parsers
-src/lib/timetable/  Pure TypeScript domain logic (types, grid, demo data, scheduler, validator,
-                    capacity, moves, queries); becomes packages/core in Phase 2
-tests/              Node test runner tests (*.test.ts)
+src/app/              / (coordinator home or teacher dashboard), /setup/* (college and week, departments,
+                      rooms, teachers, subjects, sections, courses, availability), /generate, /timetable,
+                      /reports, /data (save and open), /availability and /profile (teacher)
+src/components/       App shell and role switch, entity editor, setup checklist, timetable explorer,
+                      availability editor, week grid, day agenda, class card and dialog, modal, toast, UI kit
+src/lib/store.tsx     React context: workspace, role, data updates, timetable save
+src/lib/workspace.ts  Strict parsing of stored data and college files, export format, reconciliation
+src/lib/run-generation.ts, src/workers/  Generation in a Web Worker with a main-thread fallback
+src/lib/timetable/    Pure TypeScript domain logic (types, grid, demo data, college checks, rooms,
+                      scheduler, validator, capacity, pre-check, reports, moves, queries);
+                      becomes packages/core in Phase 2
+tests/                Node test runner tests (*.test.ts)
 ```
 
 ## Rules
@@ -74,13 +81,33 @@ tests/              Node test runner tests (*.test.ts)
 - Anything important the documents do not cover (data model change, security trade-off, scope change) needs approval first.
 - Commits: small, one concern each, with tests alongside the code. Do not commit, push or deploy without asking.
 
-## Commands (prototype; they change in Phase 2)
+## API (`apps/api`)
 
-Run from the repository root (or from `apps/web` without `--prefix`). Needs Node 22.18 or newer.
+```
+src/server.ts        Process entry: config, start, SIGINT/SIGTERM graceful shutdown
+src/lifecycle.ts     startApi(): HTTP server, database connection with retry, setup, close()
+src/app.ts           Express assembly and middleware order; modules mount under /api/v1
+src/config.ts        Zod-validated environment (see .env.example; never commit .env)
+src/routes/ controllers/ services/   One module per feature area (health so far)
+src/middleware/      request id, logging, security (helmet, CORS, JSON-only), validate (Zod), errors
+src/http/            Response envelope and ApiError
+src/db/              Connection (fail fast, retry, ping), tenant plugin (runInTenant), setup (collections, indexes)
+src/models/          Mongoose schemas with the approved indexes; always registered per connection
+tests/unit, tests/integration   Node test runner; integration tests start a throwaway mongod
+```
 
-- `npm run setup`: install dependencies (first time only)
-- `npm run dev`: start at http://localhost:3000
-- `npm test`: scheduler, validator, capacity, moves, storage and query tests
-- `npm run typecheck`, `npm run lint`, `npm run build`, `npm start`
+- Responses: `{ data, meta: { requestId } }` or `{ error: { code, message, fields?, requestId } }` (API_DESIGN.md section 2).
+- College-owned queries must run inside `runInTenant(collegeId, async () => ...)`; without it they throw. Cross-college access needs `.setOptions({ platformScope: true })` and only in platform modules.
+- Import with `.ts` extensions and erasable TypeScript only (Node runs the sources directly; `tsc` builds `dist`).
+- Never use the raw `mongodb` driver outside `src/db` (lint rule).
 
-Definition of done for a change: `npm test`, `npm run typecheck`, `npm run lint` and `npm run build` pass; the affected screen has been checked in a browser (desktop and a 375 px phone); documentation reflects the change.
+## Commands
+
+Run from the repository root. Needs Node 22.18 or newer; the API and its integration tests need MongoDB Community Server installed (`mongod`).
+
+- `npm run setup`: install dependencies of both apps (first time only); copy `apps/api/.env.example` to `apps/api/.env`
+- `npm run dev` (web, http://localhost:3000) and `npm run dev:api` (API, http://127.0.0.1:4000)
+- `npm test` (both apps), `npm run test:web`, `npm run test:api`, `npm run test:api:unit`, `npm run test:api:integration`
+- `npm run typecheck`, `npm run lint`, `npm run build` (both apps), `npm start`, `npm run start:api`
+
+Definition of done for a change: `npm test`, `npm run typecheck`, `npm run lint` and `npm run build` pass; affected screens checked in a browser (desktop and a 375 px phone) and affected endpoints exercised against a running API; documentation reflects the change.
