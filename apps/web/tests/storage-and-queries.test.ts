@@ -52,6 +52,25 @@ describe("parseStoredTimetable", () => {
     assert.equal(result.value, null);
     assert.ok(result.problem);
   });
+
+  it("rejects a stored timetable with a clash", () => {
+    const clash = { ...entry, id: "q-ds-3b#1", requirementId: "q-ds-3b", sectionId: "s-3b", roomId: "r-102" };
+    const raw = JSON.stringify({ version: 1, datasetId: "standard", entries: [entry, clash] });
+    const result = parseStoredTimetable(raw, STANDARD_DATASET);
+    assert.equal(result.value, null);
+    assert.match(result.problem ?? "", /broke a scheduling rule/);
+  });
+
+  it("rejects a class with no length", () => {
+    const raw = JSON.stringify({ version: 1, datasetId: "standard", entries: [{ ...entry, span: 0 }] });
+    assert.equal(parseStoredTimetable(raw, STANDARD_DATASET).value, null);
+  });
+
+  it("keeps a timetable that only conflicts with availability (the pages warn about that)", () => {
+    // Wednesday period 8 is unavailable in the sample availability; that alone must not discard the timetable.
+    const raw = JSON.stringify({ version: 1, datasetId: "standard", entries: [{ ...entry, day: "wed", startPeriod: 8 }] });
+    assert.ok(parseStoredTimetable(raw, STANDARD_DATASET).value);
+  });
 });
 
 describe("teacher queries", () => {

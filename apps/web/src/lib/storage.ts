@@ -3,6 +3,7 @@
 
 import { parseSlotKey } from "./timetable/grid.ts";
 import type { Dataset, ScheduledEntry, SlotKey } from "./timetable/types.ts";
+import { validateTimetable } from "./timetable/validator.ts";
 
 export const STORAGE_KEYS = {
   availability: "cto.availability.v1",
@@ -104,6 +105,15 @@ export function parseStoredTimetable(raw: string | null, dataset: Dataset): Pars
     !data.entries.every((e) => isEntryFor(dataset, e))
   ) {
     return { value: null, problem };
+  }
+  // Re-check every rule except availability: availability can change after a timetable is saved, and the
+  // pages warn about that. Any other violation (a clash, a broken limit) means the data was altered or is
+  // from an older, less strict version of the demo, so it is not used.
+  if (!validateTimetable(dataset, data.entries as ScheduledEntry[], {}).valid) {
+    return {
+      value: null,
+      problem: "Your saved timetable broke a scheduling rule (for example, a class booked twice), so the sample timetable is shown.",
+    };
   }
   const source: TimetableSource =
     data.source === "generated" || data.source === "edited" ? data.source : "sample";
