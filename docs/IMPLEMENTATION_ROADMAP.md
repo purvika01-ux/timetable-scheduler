@@ -2,7 +2,7 @@
 
 Dependency-aware plan from the working prototype to the multi-college MERN platform. It replaces `IMPLEMENTATION_PLAN.md` and the roadmap in `PRODUCT_AUDIT.md` section 10. Acceptance criteria ids (AC-…) and journeys (J1–J6) are defined in `PRODUCT_REQUIREMENTS.md` section 9; decision ids in its section 12.
 
-Status on 2026-10-26: Phase 0 code complete and merged to `main`; the Vercel demo deploy is pending (owner). Phases 1 onward have not started and need the owner's approval of this sequence.
+Status on 2026-10-26: sequence approved (M12). Phase 0 code complete and merged to `main`; the Vercel demo deploy is pending (owner). Phase 1 implemented on branch `phase-1-any-college` and checked in the browser; its manual acceptance test with someone outside the project is still to do.
 
 ---
 
@@ -49,7 +49,7 @@ P1 and P2–P3 can run in parallel (P1 touches `apps/web` screens; P2–P3 touch
 
 Delivered: validator gaps closed (daily limit, duration, requirement consistency, duplicates, integers, completeness); teacher capacity check; incomplete results flagged; saved timetable revalidated on load; PostCSS override; audit and decisions documents. 51 tests passing. Remaining: Vercel deploy of `main` (owner creates the account, M9).
 
-### Phase 1: "Any college" in the browser (hackathon)
+### Phase 1: "Any college" in the browser (hackathon) — implemented, awaiting the outside-user test
 
 Depends on: Phase 0. Decisions: M3, M4 (decided). No new packages.
 

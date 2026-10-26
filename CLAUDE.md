@@ -4,7 +4,7 @@ College Timetable Optimizer: clash-free timetables for colleges in Punjab. Start
 
 ## Where things stand
 
-- **Built:** a frontend-only prototype in `apps/web` (Next.js, sample data, browser storage), with Phase 0 correctness fixes. It is the baseline: nothing in it is removed until its replacement passes its acceptance criteria.
+- **Built:** a frontend-only prototype in `apps/web` (Next.js, browser storage): Phase 0 correctness fixes and Phase 1, where a coordinator sets up any college, checks it, generates, adjusts, prints and saves it as a file, and a Demo view shows any teacher's view. It is the baseline: nothing in it is removed until its replacement passes its acceptance criteria.
 - **Designed, not built:** the platform (Express API, MongoDB, worker, shared packages). See the documents below.
 - **Next work:** the sequence in `docs/IMPLEMENTATION_ROADMAP.md`, once the owner approves it. Until Phase 2 starts, the prototype rules below apply in full (no backend, no database, no new packages).
 
@@ -38,17 +38,23 @@ College Timetable Optimizer: clash-free timetables for colleges in Punjab. Start
 ## Prototype (`apps/web`) today
 
 - Stack: Next.js 15 (App Router), React 19, TypeScript, Tailwind CSS 4. No other runtime dependencies. Icons are inline SVG (`src/components/icons.tsx`); dialogs use native `<dialog>`. PostCSS is pinned through npm `overrides`.
-- Data is invented sample data (`src/lib/timetable/demo-data.ts`). Persistence is browser localStorage only (`src/lib/storage.ts`, keys `cto.*.v1`). Stored data is parsed defensively and revalidated; bad data falls back to the sample with a notice.
+- The college being worked on (data plus timetable) is one "workspace" in browser localStorage (`cto.workspace.v1`; the demo role in `cto.role.v1`). It opens with invented sample data (`src/lib/timetable/demo-data.ts`). Stored data and opened files are parsed strictly (`src/lib/workspace.ts`); a clash or damaged data is refused with a notice. Data edits reconcile the timetable (classes that no longer match their course are removed and shown as missing).
+- There is no sign-in: the Demo view switch (coordinator or any teacher) stands in for roles (M4). Only coordinators edit data or move classes.
 - The prototype needs no environment variables or secrets.
 
 ```
-src/app/            Pages: / (dashboard), /timetable, /availability, /generate, /profile
-src/components/     App shell, week grid, day agenda, class card and dialog, modal, toast, UI kit
-src/lib/store.tsx   React context: dataset, availability, current timetable, save/reset
-src/lib/storage.ts  localStorage read/write and validating parsers
-src/lib/timetable/  Pure TypeScript domain logic (types, grid, demo data, scheduler, validator,
-                    capacity, moves, queries); becomes packages/core in Phase 2
-tests/              Node test runner tests (*.test.ts)
+src/app/              / (coordinator home or teacher dashboard), /setup/* (college and week, departments,
+                      rooms, teachers, subjects, sections, courses, availability), /generate, /timetable,
+                      /reports, /data (save and open), /availability and /profile (teacher)
+src/components/       App shell and role switch, entity editor, setup checklist, timetable explorer,
+                      availability editor, week grid, day agenda, class card and dialog, modal, toast, UI kit
+src/lib/store.tsx     React context: workspace, role, data updates, timetable save
+src/lib/workspace.ts  Strict parsing of stored data and college files, export format, reconciliation
+src/lib/run-generation.ts, src/workers/  Generation in a Web Worker with a main-thread fallback
+src/lib/timetable/    Pure TypeScript domain logic (types, grid, demo data, college checks, rooms,
+                      scheduler, validator, capacity, pre-check, reports, moves, queries);
+                      becomes packages/core in Phase 2
+tests/                Node test runner tests (*.test.ts)
 ```
 
 ## Rules
@@ -80,7 +86,7 @@ Run from the repository root (or from `apps/web` without `--prefix`). Needs Node
 
 - `npm run setup`: install dependencies (first time only)
 - `npm run dev`: start at http://localhost:3000
-- `npm test`: scheduler, validator, capacity, moves, storage and query tests
+- `npm test`: scheduling, setup-check, college-file and query tests
 - `npm run typecheck`, `npm run lint`, `npm run build`, `npm start`
 
 Definition of done for a change: `npm test`, `npm run typecheck`, `npm run lint` and `npm run build` pass; the affected screen has been checked in a browser (desktop and a 375 px phone); documentation reflects the change.
