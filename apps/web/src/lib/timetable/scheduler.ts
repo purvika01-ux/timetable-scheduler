@@ -8,6 +8,7 @@
 // Sessions that still do not fit are returned with reasons, never dropped silently.
 // The result must still pass the independent validator (validator.ts) before it is shown as valid.
 
+import { teachingCapacity } from "./capacity.ts";
 import { coveredPeriods, DAY_ORDER, validStarts } from "./grid.ts";
 import type {
   AvailabilityMap,
@@ -194,16 +195,9 @@ function explain(
     );
   }
 
-  const availablePeriods = dataset.grid.days.reduce(
-    (sum, d) => sum + d.periodCount - (availability[req.teacherId] ?? []).filter((k) => k.startsWith(`${d.id}-`)).length,
-    0,
-  );
-  const neededPeriods = dataset.requirements
-    .filter((r) => r.teacherId === req.teacherId)
-    .reduce((sum, r) => sum + r.sessionsPerWeek * r.span, 0);
-  if (neededPeriods > availablePeriods) {
+  if (teacher) {
     reasons.push(
-      `${teacherName} teaches ${neededPeriods} periods a week but is available for only ${availablePeriods}.`,
+      ...teachingCapacity(dataset.grid, teacher, dataset.requirements, availability[req.teacherId] ?? []).problems,
     );
   }
 

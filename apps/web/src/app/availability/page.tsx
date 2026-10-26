@@ -7,6 +7,7 @@ import { useToast } from "@/components/toast";
 import { Banner, Button, ButtonLink, cx, PageHeader, PageSkeleton } from "@/components/ui";
 import { useDemoStore } from "@/lib/store";
 import { DEFAULT_DEMO_TEACHER_UNAVAILABLE } from "@/lib/timetable/demo-data";
+import { teachingCapacity } from "@/lib/timetable/capacity";
 import { formatTime, slotKey } from "@/lib/timetable/grid";
 import { weeklyLoad } from "@/lib/timetable/queries";
 import type { DayId, SlotKey } from "@/lib/timetable/types";
@@ -26,10 +27,11 @@ function AvailabilityEditor({ saved, savedAt }: { saved: SlotKey[]; savedAt: str
   const [error, setError] = useState<string | null>(null);
 
   const mine = useMemo(() => timetable.entries.filter((e) => e.teacherId === teacher.id), [timetable, teacher.id]);
-  const requiredPeriods = useMemo(
-    () => dataset.requirements.filter((r) => r.teacherId === teacher.id).reduce((n, r) => n + r.sessionsPerWeek * r.span, 0),
-    [dataset, teacher.id],
+  const capacity = useMemo(
+    () => teachingCapacity(dataset.grid, teacher, dataset.requirements, [...draft]),
+    [dataset, teacher, draft],
   );
+  const requiredPeriods = capacity.needed;
   const classAt = useMemo(() => {
     const map = new Map<SlotKey, string>();
     for (const e of mine) {
@@ -44,7 +46,7 @@ function AvailabilityEditor({ saved, savedAt }: { saved: SlotKey[]; savedAt: str
   const availableCount = totalPeriods - draft.size;
   const dirty = draft.size !== saved.length || saved.some((k) => !draft.has(k));
   const conflicts = [...draft].filter((k) => classAt.has(k));
-  const tooFew = availableCount < requiredPeriods;
+  const tooFew = capacity.problems.length > 0;
 
   useEffect(() => {
     if (!dirty) return;
@@ -79,9 +81,7 @@ function AvailabilityEditor({ saved, savedAt }: { saved: SlotKey[]; savedAt: str
 
   const save = () => {
     if (tooFew) {
-      setError(
-        `You marked only ${availableCount} periods as available, but you teach ${requiredPeriods} periods a week. Keep at least ${requiredPeriods} periods available.`,
-      );
+      setError(`${capacity.problems.join(" ")} Mark more periods available, or spread them over more days.`);
       return;
     }
     const ordered = grid.days.flatMap((d) =>
@@ -127,9 +127,13 @@ function AvailabilityEditor({ saved, savedAt }: { saved: SlotKey[]; savedAt: str
           </Banner>
         )}
         {!error && tooFew && (
-          <Banner tone="error" title="Too few available periods">
-            You teach {requiredPeriods} periods a week but only {availableCount} are marked available. Free up at least{" "}
-            {requiredPeriods - availableCount} more before saving.
+          <Banner tone="error" title="Your classes cannot fit this availability">
+            <ul className="list-disc space-y-0.5 pl-4">
+              {capacity.problems.map((p) => (
+                <li key={p}>{p}</li>
+              ))}
+            </ul>
+            <p className="mt-1">Mark more periods available, or spread them over more days, before saving.</p>
           </Banner>
         )}
         {conflicts.length > 0 && !tooFew && (
