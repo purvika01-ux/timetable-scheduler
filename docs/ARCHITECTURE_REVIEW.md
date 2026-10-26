@@ -1,6 +1,6 @@
 # ARCHITECTURE_REVIEW.md
 
-> **Scope note (2026-10-21).** This document describes the full production platform, which is future work. The current build is a frontend-only prototype (Next.js, sample data, browser storage; no backend, database or Docker). For what exists now, see `CLAUDE.md`, `README.md` and `docs/DECISIONS.md` (P1 to P8); they win where this document disagrees about the prototype.
+> **Historical (updated 2026-10-26).** This is a review of the earlier FastAPI/PostgreSQL plan, kept for its reasoning. It is not an instruction to build anything. Its PostgreSQL-specific fixes (row-level security, exclusion constraints, deferrable constraints, Redis/RQ, Python file parsing, CP-SAT sizing: items 1.2 part, 1.3, 4.8, 4.9, 5.2, 5.5, 5.6, 2.4 and 3.9) are superseded by the MERN design in `ARCHITECTURE.md`, `DATABASE_DESIGN.md`, `SECURITY_MODEL.md` and `SCHEDULING_ENGINE.md`. Its product findings (batches and electives 1.1, one grid 1.2, grid lock 1.4, exception keying 1.5, co-teaching 1.6, unplaced sessions 1.8, student access 4.1, SMS abuse 4.2, course coverage 4.3, mid-semester change 4.4, support access 5.10) were carried into `PRODUCT_REQUIREMENTS.md`.
 
 Pre-implementation review of the plan (CLAUDE.md, PROJECT_SPEC, TECHNICAL_PLAN, UI_UX_GUIDELINES, IMPLEMENTATION_PLAN). Date: 2026-10-21. Nothing is changed in those documents yet; each item says what to change once you decide.
 

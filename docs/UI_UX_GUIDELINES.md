@@ -1,8 +1,8 @@
 # UI_UX_GUIDELINES.md
 
-> **Scope note (2026-10-21).** These guidelines apply to the current frontend-only prototype as well as the future platform. The prototype simplifies them: English only, system fonts, inline SVG icons instead of shadcn/ui and Lucide, and no service worker or offline cache.
+> **Scope note (updated 2026-10-26).** These guidelines apply to the prototype and the platform. The prototype simplifies them: English only, system fonts, its own components with inline SVG icons, and no service worker. Component libraries and tools named below (shadcn/ui, Lucide, Storybook) are **not approved packages**; using them needs the owner's approval (N17 in `PRODUCT_REQUIREMENTS.md` section 12). The student sign-in screen in section 7 depends on the open student-access decision (N1).
 
-Design rules for the web app. Behaviour is in PROJECT_SPEC.md; this file says how it looks and feels. Open design items (U1 to U10) are in PROJECT_SPEC.md section 4: use the proposed defaults below as placeholders and ask before treating them as final.
+Design rules for the web app. Behaviour is in `PRODUCT_REQUIREMENTS.md`; this file says how it looks and feels. Open design items (U1 to U9) are in `PRODUCT_REQUIREMENTS.md` section 12: use the proposed defaults below as placeholders and ask before treating them as final.
 
 ## 1. Principles
 
@@ -76,11 +76,11 @@ Breadcrumbs on deep admin screens; the current section is marked in text and sha
 
 ## 7. Screens (key set)
 
-Full list S1 to S33 lives in the UI/UX specification document; MVP screens are:
+Features and their releases are in `PRODUCT_REQUIREMENTS.md` section 5; the key screens are:
 
-- Public: landing, college registration, login, student sign-in (roll number, mobile, code), invite accept, password reset.
-- Platform admin: verification queue and detail.
-- College admin and coordinator: dashboard, setup wizard (7 steps), master-data lists and forms, import (upload, preview, confirm), availability inputs tracker, rules, generate (pre-check, progress, result), timetable editor, publish confirmation, exceptions review, reports (clash audit, quality), user management.
+- Public: landing, login, invite accept, password reset (from a CA-issued link). Student access depends on N1 (share link or sign-in). College self-registration is P2 (N4).
+- Platform admin: colleges list, create college and invite its first administrator (verification queue at P2, N4).
+- College admin and coordinator: dashboard with setup checklist (SET-1; a step-by-step wizard is not planned for MVP), master-data lists and forms, import (upload, preview, confirm), availability inputs tracker, rules, generate (pre-check, progress, result), timetable editor, publish confirmation, exceptions review, reports (clash audit, quality), user management.
 - HOD: department dashboard, subject assignment (load bars), availability for department.
 - Teacher: Today, Week, availability grid.
 - Student: Today (next class card), Week, Alerts.
@@ -90,7 +90,7 @@ Full list S1 to S33 lives in the UI/UX specification document; MVP screens are:
 
 ## 8. Components
 
-Build with shadcn/ui, restyled to the tokens. Each component documents states in Storybook or an MDX page.
+Build with the project's own components, styled with the tokens (shadcn/ui and Storybook only if approved, N17). Each component's states are documented next to it.
 
 - **Timetable grid:** rows = periods (with the period rail), columns = days; cells hold class cards. Click or Enter selects a cell; arrow keys move; `M` begins a move, arrows or click choose the target, Enter confirms, Esc cancels. Drag and drop is an extra, never the only way. Valid targets are tinted green with a check, invalid targets red with an icon and the reason in a tooltip and in a live region.
 - **Class card:** subject code and name, teacher, room, section; status badge; lock icon; overlays for cancelled (struck through, stamp) and changed (stamp "Room changed"). Lab blocks span rows.
@@ -112,7 +112,7 @@ Pattern: **what happened + why + what to do**. Examples:
 - Clash on edit: "Can't move here. Dr Singh teaches BSc 2A at this time."
 - Import row error: "Row 14, Capacity: '4O' is not a number. Use digits, for example 40."
 - Version conflict: "Someone else changed this timetable. Reload to see their changes; your edit was not saved."
-- Success: "Timetable published. 412 students and 28 teachers were notified."
+- Success: "Timetable published. 412 students and 28 teachers will be notified when the 15-minute undo window closes."
 - Network: "No connection. Showing your saved timetable from 2 hours ago."
 
 All strings come from i18n catalogues with `en` and `pa`; Punjabi copy reviewed by a Punjabi speaker (U9). Messages never contain raw error codes or stack traces; they include a short reference id when a support request would help.
@@ -139,7 +139,7 @@ All strings come from i18n catalogues with `en` and `pa`; Punjabi copy reviewed 
 - Zoom to 200 percent and 320 px width without loss; respect reduced-motion; no motion over 5 seconds.
 - Colour contrast per section 3; pattern and text accompany colour.
 - Touch targets per section 5; no hover-only information.
-- Each release: axe automated scan, keyboard walkthrough, one screen-reader pass of journeys J3 and J7.
+- Each release: axe automated scan, keyboard walkthrough, one screen-reader pass of journey J3 and the student view (J4).
 
 ## 12. Performance budget
 

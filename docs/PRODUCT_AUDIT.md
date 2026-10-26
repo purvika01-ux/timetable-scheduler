@@ -6,6 +6,8 @@ Audit of the College Timetable Optimizer repository against the evaluator's brie
 - Branch audited: `hackathon-prototype` at `f8ed1e2` (working tree clean). No branch was changed and no history was rewritten.
 - Scope: audit only. No application code, dependency, configuration or existing document was changed. The only file added is this report.
 
+> **Status (2026-10-26, later the same day).** Historical record. The section 4 correctness findings B1 to B8 were fixed in Phase 0. The section 7 conflicts are resolved by the MERN documents (`PRODUCT_REQUIREMENTS.md`, `ARCHITECTURE.md`, `DATABASE_DESIGN.md`, `API_DESIGN.md`, `SECURITY_MODEL.md`, `SCHEDULING_ENGINE.md`). Section 10's roadmap is replaced by `IMPLEMENTATION_ROADMAP.md`, whose phase numbers differ from this report's.
+
 ## How to read the evidence tags
 
 Every finding says how it was established:
