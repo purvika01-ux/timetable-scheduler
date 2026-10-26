@@ -13,7 +13,15 @@ export const collegeSchema = new Schema(
     district: { type: String, trim: true, maxlength: 80 },
     kind: { type: String, trim: true, maxlength: 80 },
     affiliation: { type: String, trim: true, maxlength: 200 },
-    status: { type: String, enum: ["pending", "active", "suspended"], required: true, default: "pending" },
+    status: { type: String, enum: ["pending", "active", "rejected", "suspended"], required: true, default: "pending" },
+    /** Self-registration (M16): who applied, and the platform administrator's decision. */
+    registration: {
+      applicantUserId: { type: Schema.Types.ObjectId },
+      submittedAt: { type: Date },
+      decidedAt: { type: Date },
+      decidedBy: { type: Schema.Types.ObjectId },
+      reason: { type: String, maxlength: 500 },
+    },
     isSample: { type: Boolean, required: true, default: false },
     timeZone: { type: String, required: true, default: "Asia/Kolkata" },
     settings: {
@@ -36,10 +44,15 @@ export const userSchema = new Schema(
     mobileNormalized: { type: String, maxlength: 20 },
     passwordHash: { type: String },
     passwordChangedAt: { type: Date },
+    /** Hashes of the previous passwords (newest first), to refuse reuse. */
+    passwordHistory: { type: [String], default: [] },
     platformRoles: { type: [String], enum: ["PA", "PS"], default: [] },
     mfa: {
       enabled: { type: Boolean, default: false },
       secretEncrypted: { type: String },
+      /** Set during enrolment until the first code confirms the authenticator app. */
+      pendingSecretEncrypted: { type: String },
+      lastUsedStep: { type: Number },
       recoveryCodeHashes: { type: [String], default: undefined },
     },
     locale: { type: String, enum: ["en", "pa"], default: "en" },
@@ -59,8 +72,13 @@ export const sessionSchema = new Schema(
     tokenHash: { type: String, required: true },
     parentId: { type: Schema.Types.ObjectId },
     replacedById: { type: Schema.Types.ObjectId },
-    lastUsedAt: { type: Date },
+    lastUsedAt: { type: Date, required: true },
+    /** Inactivity allowed between refreshes, from the session policy (M19). */
+    idleTimeoutSeconds: { type: Number, required: true },
+    /** Absolute end of the session; the document is deleted after it. */
     expiresAt: { type: Date, required: true },
+    /** Two-step sign-in was completed for this session (required for platform administrators). */
+    mfaVerified: { type: Boolean, required: true, default: false },
     revokedAt: { type: Date },
     revokeReason: { type: String, maxlength: 80 },
     deviceLabel: { type: String, maxlength: 120 },
@@ -94,6 +112,43 @@ export const rateLimitSchema = new Schema(
   { collection: "rateLimits", strict: "throw" },
 );
 rateLimitSchema.index({ resetAt: 1 }, { expireAfterSeconds: 0, name: "reset_ttl" });
+
+export const passwordResetSchema = new Schema(
+  {
+    userId: { type: Schema.Types.ObjectId, required: true },
+    tokenHash: { type: String, required: true },
+    expiresAt: { type: Date, required: true },
+    usedAt: { type: Date },
+    issuedBy: { type: Schema.Types.ObjectId, required: true },
+    /** College whose administrator issued it; absent when a platform administrator did. */
+    collegeId: { type: Schema.Types.ObjectId },
+  },
+  { collection: "passwordResets", timestamps: true, strict: "throw" },
+);
+passwordResetSchema.index({ tokenHash: 1 }, { unique: true, name: "token_unique" });
+passwordResetSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0, name: "expires_ttl" });
+
+/** Platform-level audit trail: registrations, decisions, sign-in security events, recovery (append-only). */
+export const platformAuditEventSchema = new Schema(
+  {
+    actor: {
+      userId: { type: Schema.Types.ObjectId },
+      platformRoles: { type: [String], default: [] },
+    },
+    action: { type: String, required: true, maxlength: 80 },
+    target: {
+      kind: { type: String, required: true, maxlength: 40 },
+      id: { type: String, required: true, maxlength: 64 },
+    },
+    collegeId: { type: Schema.Types.ObjectId },
+    summary: { type: Schema.Types.Mixed },
+    requestId: { type: String, maxlength: 64 },
+    at: { type: Date, required: true, default: () => new Date() },
+  },
+  { collection: "platformAuditEvents", strict: "throw" },
+);
+platformAuditEventSchema.index({ at: -1 }, { name: "at" });
+platformAuditEventSchema.index({ "target.kind": 1, "target.id": 1 }, { name: "target" });
 
 export type College = InferSchemaType<typeof collegeSchema>;
 export type User = InferSchemaType<typeof userSchema>;

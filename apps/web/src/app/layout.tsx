@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 
 import { AppShell } from "@/components/app-shell";
 import { ToastProvider } from "@/components/toast";
+import { AuthProvider } from "@/lib/auth-context";
 import { WorkspaceProvider } from "@/lib/store";
 
 import "./globals.css";
@@ -19,11 +20,13 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en">
       <body className="antialiased">
-        <WorkspaceProvider>
-          <ToastProvider>
-            <AppShell>{children}</AppShell>
-          </ToastProvider>
-        </WorkspaceProvider>
+        <AuthProvider>
+          <WorkspaceProvider>
+            <ToastProvider>
+              <AppShell>{children}</AppShell>
+            </ToastProvider>
+          </WorkspaceProvider>
+        </AuthProvider>
       </body>
     </html>
   );

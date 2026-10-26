@@ -10,6 +10,10 @@ import { createLogger } from "../../src/logger.ts";
 
 export const ALLOWED_ORIGIN = "http://localhost:3000";
 
+export const TEST_JWT_PRIVATE_KEY =
+  "LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1DNENBUUF3QlFZREsyVndCQ0lFSU1WOHVuRmtlV1lnVElBUkZ0ZitacnpFYVNMTExmZ0gxUkhIMlFvSDYzU2EKLS0tLS1FTkQgUFJJVkFURSBLRVktLS0tLQo=";
+export const TEST_MFA_KEY = "nvktjZRbjOHoPeGblwheYaWXxBAJ59huHz73/rtQAOM=";
+
 export function testConfig(overrides: Record<string, string> = {}): Config {
   return loadConfig({
     NODE_ENV: "test",
@@ -20,6 +24,8 @@ export function testConfig(overrides: Record<string, string> = {}): Config {
     LOG_LEVEL: "silent",
     SHUTDOWN_TIMEOUT_MS: "2000",
     DB_SERVER_SELECTION_TIMEOUT_MS: "500",
+    AUTH_JWT_PRIVATE_KEY: TEST_JWT_PRIVATE_KEY,
+    MFA_ENCRYPTION_KEY: TEST_MFA_KEY,
     ...overrides,
   });
 }

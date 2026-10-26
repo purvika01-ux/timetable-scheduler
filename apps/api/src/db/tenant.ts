@@ -31,6 +31,11 @@ export function runInTenant<T>(collegeId: Types.ObjectId | string, fn: () => T):
   return storage.run({ collegeId: new Types.ObjectId(collegeId) }, async (): Promise<Awaited<T>> => await fn());
 }
 
+/** Synchronous variant for middleware: everything `fn` starts (including `next()`) runs in the college's context. */
+export function enterTenant(collegeId: Types.ObjectId, fn: () => void): void {
+  storage.run({ collegeId }, fn);
+}
+
 export function currentTenant(): TenantContext | undefined {
   return storage.getStore();
 }

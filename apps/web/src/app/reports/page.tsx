@@ -17,13 +17,33 @@ export default function ReportsPage() {
   const loads = useMemo(() => teacherLoadReport(dataset, entries), [dataset, entries]);
   const rooms = useMemo(() => roomUseReport(dataset, entries), [dataset, entries]);
 
+  const filteredLoads = useMemo(() => {
+    if (role.kind === "hod") {
+      const deptTeachers = dataset.teachers.filter((t) => t.departmentId === role.departmentId);
+      return loads.filter((l) => deptTeachers.some((t) => t.id === l.teacherId));
+    }
+    return loads;
+  }, [loads, role, dataset.teachers]);
+
+  const filteredRooms = useMemo(() => {
+    if (role.kind === "hod") {
+      return rooms.filter((r) => {
+        const rm = dataset.rooms.find((ro) => ro.id === r.roomId);
+        return !rm?.departmentId || rm.departmentId === role.departmentId;
+      });
+    }
+    return rooms;
+  }, [rooms, role, dataset.rooms]);
+
   if (!ready) return <PageSkeleton />;
-  if (role.kind !== "coordinator") return <RoleNotice needs="coordinator" />;
+  if (role.kind !== "coordinator" && role.kind !== "principal" && role.kind !== "hod") {
+    return <RoleNotice needs="coordinator" />;
+  }
   if (!timetable) {
     return (
       <div>
         <PageHeader title="Reports" />
-        <EmptyState icon="chart" title="No timetable yet" action={<ButtonLink href="/generate" variant="primary" icon="generate">Generate timetable</ButtonLink>}>
+        <EmptyState icon="chart" title="No timetable yet" action={role.kind === "coordinator" ? <ButtonLink href="/generate" variant="primary" icon="generate">Generate timetable</ButtonLink> : undefined}>
           Reports on teacher loads and room use appear once a timetable exists.
         </EmptyState>
       </div>
@@ -33,7 +53,7 @@ export default function ReportsPage() {
   const dept = (id: string) => dataset.departments.find((d) => d.id === id);
   const teacher = (id: string) => dataset.teachers.find((t) => t.id === id);
   const room = (id: string) => dataset.rooms.find((r) => r.id === id);
-  const idle = rooms.filter((r) => r.used === 0).length;
+  const idle = filteredRooms.filter((r) => r.used === 0).length;
 
   return (
     <div className="space-y-4">
@@ -49,7 +69,7 @@ export default function ReportsPage() {
 
       <Panel title="Teacher load">
         <div className="relative -mx-4 overflow-x-auto">
-          <table className="w-full min-w-[640px] text-sm">
+          <table className="w-full min-w-160 text-sm">
             <caption className="sr-only">Teacher load: periods scheduled per week, busiest day against the daily limit, and gaps</caption>
             <thead>
               <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-ink-muted">
@@ -61,7 +81,7 @@ export default function ReportsPage() {
               </tr>
             </thead>
             <tbody>
-              {loads.map((l) => {
+              {filteredLoads.map((l) => {
                 const over = l.busiestDay !== null && l.busiestDay.periods > l.dailyLimit;
                 const short = l.periods < l.required;
                 return (
@@ -92,7 +112,7 @@ export default function ReportsPage() {
 
       <Panel title={`Room use${idle ? ` (${idle} ${idle === 1 ? "room is" : "rooms are"} never used)` : ""}`}>
         <div className="relative -mx-4 overflow-x-auto">
-          <table className="w-full min-w-[640px] text-sm">
+          <table className="w-full min-w-160 text-sm">
             <caption className="sr-only">Room use: periods used out of periods available, and by which departments</caption>
             <thead>
               <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-ink-muted">
@@ -103,7 +123,7 @@ export default function ReportsPage() {
               </tr>
             </thead>
             <tbody>
-              {rooms.map((r) => {
+              {filteredRooms.map((r) => {
                 const info = room(r.roomId);
                 const pct = r.available ? Math.round((r.used / r.available) * 100) : 0;
                 return (

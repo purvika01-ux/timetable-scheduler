@@ -27,7 +27,7 @@ export function SetupFrame({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { ready, role, dataset } = useWorkspace();
   if (!ready) return <PageSkeleton />;
-  if (role.kind !== "coordinator") return <RoleNotice needs="coordinator" />;
+  if (role.kind !== "coordinator" && role.kind !== "principal" && role.kind !== "hod") return <RoleNotice needs="coordinator" />;
   const problems = checkDataset(dataset);
   return (
     <div>

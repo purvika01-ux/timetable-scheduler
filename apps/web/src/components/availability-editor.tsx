@@ -13,12 +13,15 @@ import { Banner, Button, ButtonLink, cx } from "./ui";
 
 /** Tap grid of one teacher's available and unavailable periods. Re-mount it (key) after saving. */
 export function AvailabilityEditor({ teacher, own }: { teacher: Teacher; own: boolean }) {
-  const { dataset, timetable, setTeacherUnavailable, role } = useWorkspace();
+  const { dataset, timetable, setTeacherUnavailable, role, canManageAvailability } = useWorkspace();
   const toast = useToast();
   const grid = dataset.grid;
   const saved = useMemo(() => dataset.availability[teacher.id] ?? [], [dataset.availability, teacher.id]);
   const [draft, setDraft] = useState<Set<SlotKey>>(() => new Set(saved));
   const [error, setError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const editable = canManageAvailability && (role.kind !== "teacher" || own);
 
   const mine = useMemo(() => (timetable?.entries ?? []).filter((e) => e.teacherId === teacher.id), [timetable, teacher.id]);
   const capacity = useMemo(() => teachingCapacity(grid, teacher, dataset.requirements, [...draft]), [grid, teacher, dataset.requirements, draft]);
@@ -47,6 +50,7 @@ export function AvailabilityEditor({ teacher, own }: { teacher: Teacher; own: bo
   }, [dirty]);
 
   const toggle = (key: SlotKey) => {
+    if (!editable) return;
     setError(null);
     setDraft((prev) => {
       const next = new Set(prev);
@@ -57,6 +61,7 @@ export function AvailabilityEditor({ teacher, own }: { teacher: Teacher; own: bo
   };
 
   const toggleDay = (day: DayId, periodCount: number) => {
+    if (!editable) return;
     setError(null);
     const keys = Array.from({ length: periodCount }, (_, i) => slotKey(day, i + 1));
     setDraft((prev) => {
@@ -70,17 +75,26 @@ export function AvailabilityEditor({ teacher, own }: { teacher: Teacher; own: bo
     });
   };
 
-  const save = () => {
-    if (tooFew) {
-      setError(`${capacity.problems.join(" ")} Mark more periods available, or spread them over more days.`);
+  const save = async () => {
+    if (tooFew || isSaving || !editable) {
+      if (tooFew) setError(`${capacity.problems.join(" ")} Mark more periods available, or spread them over more days.`);
       return;
     }
-    const ordered = grid.days.flatMap((d) => Array.from({ length: d.periodCount }, (_, i) => slotKey(d.id, i + 1)).filter((k) => draft.has(k)));
-    if (!setTeacherUnavailable(teacher.id, ordered)) {
-      setError("This browser blocked saving (storage may be full or disabled). The changes were not saved.");
-      return;
+    setIsSaving(true);
+    setError(null);
+    try {
+      const ordered = grid.days.flatMap((d) => Array.from({ length: d.periodCount }, (_, i) => slotKey(d.id, i + 1)).filter((k) => draft.has(k)));
+      const ok = await setTeacherUnavailable(teacher.id, ordered);
+      if (!ok) {
+        setError("This browser blocked saving (storage may be full or disabled). The changes were not saved.");
+        return;
+      }
+      toast(`Availability saved for ${teacher.name}: ${availableCount} of ${totalPeriods} periods available.`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to save availability to server.");
+    } finally {
+      setIsSaving(false);
     }
-    toast(`Availability saved for ${teacher.name}: ${availableCount} of ${totalPeriods} periods available.`);
   };
 
   return (
@@ -234,29 +248,36 @@ export function AvailabilityEditor({ teacher, own }: { teacher: Teacher; own: bo
 
       <div className="sticky bottom-16 z-10 mt-5 flex flex-wrap items-center justify-end gap-2 rounded-lg border border-line bg-white/95 px-4 py-3 backdrop-blur md:bottom-4">
         <p className="mr-auto text-sm text-ink-muted" aria-live="polite">
-          {dirty ? "You have unsaved changes." : "All changes saved in this browser."}
+          {!editable ? "View-only: Your role does not allow editing this teacher's availability." : dirty ? "You have unsaved changes." : "All changes saved."}
         </p>
-        <Button
-          variant="ghost"
-          onClick={() => {
-            setDraft(new Set());
-            setError(null);
-          }}
-        >
-          Mark everything available
-        </Button>
-        <Button
-          onClick={() => {
-            setDraft(new Set(saved));
-            setError(null);
-          }}
-          disabled={!dirty}
-        >
-          Discard changes
-        </Button>
-        <Button variant="primary" icon="checkCircle" onClick={save} disabled={!dirty}>
-          Save availability
-        </Button>
+        {!editable ? (
+          <span className="rounded bg-surface px-3 py-1.5 text-xs font-medium text-ink-muted">Read-Only</span>
+        ) : (
+          <>
+            <Button
+              variant="ghost"
+              disabled={isSaving}
+              onClick={() => {
+                setDraft(new Set());
+                setError(null);
+              }}
+            >
+              Mark everything available
+            </Button>
+            <Button
+              disabled={!dirty || isSaving}
+              onClick={() => {
+                setDraft(new Set(saved));
+                setError(null);
+              }}
+            >
+              Discard changes
+            </Button>
+            <Button variant="primary" icon="checkCircle" onClick={save} disabled={!dirty || isSaving}>
+              {isSaving ? "Saving..." : "Save availability"}
+            </Button>
+          </>
+        )}
       </div>
     </div>
   );

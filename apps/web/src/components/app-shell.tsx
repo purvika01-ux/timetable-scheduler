@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { useAuth } from "@/lib/auth-context";
 import { useNow, useWorkspace, type Role } from "@/lib/store";
 
 import { Icon, type IconName } from "./icons";
@@ -19,6 +20,19 @@ const COORDINATOR_NAV: NavItem[] = [
   { href: "/data", label: "Save and open", short: "Data", icon: "download" },
 ];
 
+const PRINCIPAL_NAV: NavItem[] = [
+  { href: "/", label: "Executive Dashboard", short: "Home", icon: "dashboard", phone: true },
+  { href: "/timetable", label: "Master Timetable", short: "Timetable", icon: "calendar", phone: true },
+  { href: "/reports", label: "Institutional Reports", short: "Reports", icon: "chart", phone: true },
+  { href: "/data", label: "College Data Archive", short: "Data", icon: "download" },
+];
+
+const HOD_NAV: NavItem[] = [
+  { href: "/", label: "Department Dashboard", short: "Home", icon: "dashboard", phone: true },
+  { href: "/timetable", label: "Department Timetable", short: "Timetable", icon: "calendar", phone: true },
+  { href: "/reports", label: "Department Reports", short: "Reports", icon: "chart", phone: true },
+];
+
 const TEACHER_NAV: NavItem[] = [
   { href: "/", label: "Dashboard", short: "Home", icon: "dashboard", phone: true },
   { href: "/timetable", label: "My Timetable", short: "Timetable", icon: "calendar", phone: true },
@@ -26,45 +40,157 @@ const TEACHER_NAV: NavItem[] = [
   { href: "/profile", label: "Profile", short: "Profile", icon: "user", phone: true },
 ];
 
+const STUDENT_NAV: NavItem[] = [
+  { href: "/", label: "Class Schedule", short: "Home", icon: "dashboard", phone: true },
+  { href: "/timetable", label: "Weekly Timetable", short: "Timetable", icon: "calendar", phone: true },
+];
+
 function RoleSwitcher({ id }: { id: string }) {
   const { dataset, role, setRole } = useWorkspace();
-  const value = role.kind === "coordinator" ? "coordinator" : `teacher:${role.teacherId}`;
+  const value =
+    role.kind === "portal"
+      ? "portal"
+      : role.kind === "coordinator"
+        ? "coordinator"
+        : role.kind === "principal"
+          ? "principal"
+          : role.kind === "hod"
+            ? `hod:${role.departmentId}`
+            : role.kind === "teacher"
+              ? `teacher:${role.teacherId}`
+              : `student:${role.sectionId}`;
+
   return (
-    <label className="flex items-center gap-2 text-xs text-ink-muted" htmlFor={id}>
-      <span className="hidden whitespace-nowrap sm:inline">Demo view</span>
-      <select
-        id={id}
-        value={value}
-        onChange={(e) => {
-          const v = e.target.value;
-          const next: Role = v === "coordinator" ? { kind: "coordinator" } : { kind: "teacher", teacherId: v.slice("teacher:".length) };
-          setRole(next);
-        }}
-        className="h-9 max-w-44 rounded-md border border-line bg-white px-2 text-sm text-ink sm:max-w-64"
-        aria-label="Demo view: choose whose view of the app to see (there is no sign-in in this prototype)"
+    <div className="flex items-center gap-1.5">
+      <label className="flex items-center gap-1 text-xs text-ink-muted" htmlFor={id}>
+        <span className="hidden whitespace-nowrap sm:inline font-medium">Role:</span>
+        <select
+          id={id}
+          value={value}
+          onChange={(e) => {
+            const v = e.target.value;
+            if (v === "portal") {
+              setRole({ kind: "portal" });
+            } else if (v === "coordinator") {
+              setRole({ kind: "coordinator" });
+            } else if (v === "principal") {
+              setRole({ kind: "principal" });
+            } else if (v.startsWith("hod:")) {
+              setRole({ kind: "hod", departmentId: v.slice("hod:".length) });
+            } else if (v.startsWith("teacher:")) {
+              setRole({ kind: "teacher", teacherId: v.slice("teacher:".length) });
+            } else if (v.startsWith("student:")) {
+              setRole({ kind: "student", sectionId: v.slice("student:".length) });
+            }
+          }}
+          className="h-9 max-w-40 rounded-md border border-line bg-white px-2 text-xs font-medium text-ink sm:max-w-60 focus:border-primary focus:outline-none"
+          aria-label="Demo view: choose whose view of the app to see"
+        >
+          <option value="portal">✦ Role Selection Portal</option>
+          <option value="coordinator">⚙️ Coordinator</option>
+          <option value="principal">🎓 Principal / Admin</option>
+          {dataset.departments.length > 0 && (
+            <optgroup label="Head of Department (HOD)">
+              {dataset.departments.map((d) => (
+                <option key={d.id} value={`hod:${d.id}`}>
+                  🏢 HOD: {d.name} ({d.code})
+                </option>
+              ))}
+            </optgroup>
+          )}
+          {dataset.teachers.length > 0 && (
+            <optgroup label="Teacher">
+              {dataset.teachers.map((t) => (
+                <option key={t.id} value={`teacher:${t.id}`}>
+                  👨‍🏫 {t.name}
+                </option>
+              ))}
+            </optgroup>
+          )}
+          {dataset.sections.length > 0 && (
+            <optgroup label="Student">
+              {dataset.sections.map((s) => (
+                <option key={s.id} value={`student:${s.id}`}>
+                  🎒 Section {s.name}
+                </option>
+              ))}
+            </optgroup>
+          )}
+        </select>
+      </label>
+      <button
+        type="button"
+        onClick={() => setRole({ kind: "portal" })}
+        className="inline-flex h-9 items-center gap-1 rounded-md border border-line bg-white px-2.5 text-xs font-semibold text-ink hover:bg-surface shadow-2xs"
+        title="Return to Role Selection Gateway"
       >
-        <option value="coordinator">Coordinator</option>
-        {dataset.teachers.length > 0 && (
-          <optgroup label="Teacher">
-            {dataset.teachers.map((t) => (
-              <option key={t.id} value={`teacher:${t.id}`}>
-                {t.name}
-              </option>
-            ))}
-          </optgroup>
-        )}
-      </select>
-    </label>
+        <Icon name="refresh" className="h-3.5 w-3.5 text-primary" />
+        <span className="hidden lg:inline">Switch Role</span>
+      </button>
+    </div>
   );
 }
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { ready, dataset, role, notices, dismissNotices } = useWorkspace();
+  const { user, status, activeCollege } = useAuth();
   const now = useNow();
-  const nav = role.kind === "coordinator" ? COORDINATOR_NAV : TEACHER_NAV;
-  const phoneNav = nav.filter((n) => n.phone);
+
+  const userRoles = activeCollege?.roles ?? [];
+  const isStaff = userRoles.some((r) => ["CA", "PR", "TC"].includes(r));
+  const isTeacher = userRoles.includes("TE");
+  const isHod = userRoles.includes("HOD");
+  const isStudent = userRoles.includes("ST");
+
+  let effectiveNav: NavItem[] = COORDINATOR_NAV;
+  let roleLabel = "Coordinator";
+
+  if (role.kind === "portal") {
+    effectiveNav = [{ href: "/", label: "Role Portal", short: "Portal", icon: "sparkle", phone: true }];
+    roleLabel = "Role Portal";
+  } else if (role.kind === "coordinator") {
+    effectiveNav = COORDINATOR_NAV;
+    roleLabel = "Timetable Coordinator";
+  } else if (role.kind === "principal") {
+    effectiveNav = PRINCIPAL_NAV;
+    roleLabel = "Principal / Admin";
+  } else if (role.kind === "hod") {
+    effectiveNav = HOD_NAV;
+    const dept = dataset.departments.find((d) => d.id === role.departmentId);
+    roleLabel = dept ? `HOD (${dept.code})` : "Head of Department";
+  } else if (role.kind === "teacher") {
+    effectiveNav = TEACHER_NAV;
+    const teacher = dataset.teachers.find((t) => t.id === role.teacherId);
+    roleLabel = teacher ? `Teacher (${teacher.name.split(" ")[0]})` : "Teacher";
+  } else if (role.kind === "student") {
+    effectiveNav = STUDENT_NAV;
+    const sec = dataset.sections.find((s) => s.id === role.sectionId);
+    roleLabel = sec ? `Student (${sec.name})` : "Student";
+  }
+
+  if (status === "authenticated" && user) {
+    if (user.platformRoles.includes("PA") && !activeCollege) {
+      effectiveNav = [];
+      roleLabel = "Platform Admin";
+    } else if (isStaff) {
+      effectiveNav = COORDINATOR_NAV;
+      roleLabel = userRoles.includes("CA") ? "College Administrator" : "Timetable Coordinator";
+    } else if (isHod) {
+      effectiveNav = HOD_NAV;
+      roleLabel = "Head of Department";
+    } else if (isTeacher) {
+      effectiveNav = TEACHER_NAV;
+      roleLabel = "Teacher";
+    } else if (isStudent) {
+      effectiveNav = STUDENT_NAV;
+      roleLabel = "Student";
+    }
+  }
+
+  const phoneNav = effectiveNav.filter((n) => n.phone);
   const isActive = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
+  const isAuthRoute = pathname === "/login" || pathname === "/register" || pathname === "/account" || pathname === "/platform";
   const sample = dataset.id !== "custom";
 
   return (
@@ -88,35 +214,122 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             Optimizer
           </span>
         </div>
-        <nav aria-label="Main" className="flex-1 px-3 py-4">
-          <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wide text-ink-muted">
-            {role.kind === "coordinator" ? "Coordinator" : "Teacher"}
-          </p>
-          <ul className="space-y-1">
-            {nav.map((item) => {
-              const active = isActive(item.href);
-              return (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    aria-current={active ? "page" : undefined}
-                    className={cx(
-                      "relative flex min-h-10 items-center gap-3 rounded-md px-3 text-sm font-medium transition-colors",
-                      active ? "bg-blue-50 text-primary" : "text-ink-muted hover:bg-surface hover:text-ink",
-                    )}
-                  >
-                    {active && <span className="absolute inset-y-2 left-0 w-1 rounded-r bg-primary" aria-hidden="true" />}
-                    <Icon name={item.icon} className="h-[18px] w-[18px]" />
-                    {item.label}
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
+        <nav aria-label="Main" className="flex-1 px-3 py-4 space-y-4">
+          {effectiveNav.length > 0 && (
+            <div>
+              <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wide text-ink-muted">
+                {roleLabel}
+              </p>
+              <ul className="space-y-1">
+                {effectiveNav.map((item) => {
+                  const active = isActive(item.href);
+                  return (
+                    <li key={item.href}>
+                      <Link
+                        href={item.href}
+                        aria-current={active ? "page" : undefined}
+                        className={cx(
+                          "relative flex min-h-10 items-center gap-3 rounded-md px-3 text-sm font-medium transition-colors",
+                          active ? "bg-blue-50 text-primary" : "text-ink-muted hover:bg-surface hover:text-ink",
+                        )}
+                      >
+                        {active && <span className="absolute inset-y-2 left-0 w-1 rounded-r bg-primary" aria-hidden="true" />}
+                        <Icon name={item.icon} className="h-[18px] w-[18px]" />
+                        {item.label}
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
+
+          <div>
+            <p className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-wide text-ink-muted">
+              Account & Security
+            </p>
+            <ul className="space-y-1">
+              {status === "authenticated" && user ? (
+                <>
+                  {user.platformRoles.includes("PA") && (
+                    <li>
+                      <Link
+                        href="/platform"
+                        aria-current={pathname === "/platform" ? "page" : undefined}
+                        className={cx(
+                          "relative flex min-h-10 items-center gap-3 rounded-md px-3 text-sm font-medium transition-colors",
+                          pathname === "/platform" ? "bg-purple-50 text-purple-800" : "text-ink-muted hover:bg-surface hover:text-ink",
+                        )}
+                      >
+                        {pathname === "/platform" && <span className="absolute inset-y-2 left-0 w-1 rounded-r bg-purple-600" aria-hidden="true" />}
+                        <Icon name="dashboard" className="h-[18px] w-[18px]" />
+                        Platform Dashboard
+                      </Link>
+                    </li>
+                  )}
+                  <li>
+                    <Link
+                      href="/account"
+                      aria-current={pathname === "/account" ? "page" : undefined}
+                      className={cx(
+                        "relative flex min-h-10 items-center gap-3 rounded-md px-3 text-sm font-medium transition-colors",
+                        pathname === "/account" ? "bg-blue-50 text-primary" : "text-ink-muted hover:bg-surface hover:text-ink",
+                      )}
+                    >
+                      {pathname === "/account" && <span className="absolute inset-y-2 left-0 w-1 rounded-r bg-primary" aria-hidden="true" />}
+                      <Icon name="user" className="h-[18px] w-[18px]" />
+                      Account & Roles
+                    </Link>
+                  </li>
+                </>
+              ) : (
+                <>
+                  <li>
+                    <Link
+                      href="/login"
+                      aria-current={pathname === "/login" ? "page" : undefined}
+                      className={cx(
+                        "relative flex min-h-10 items-center gap-3 rounded-md px-3 text-sm font-medium transition-colors",
+                        pathname === "/login" ? "bg-blue-50 text-primary" : "text-ink-muted hover:bg-surface hover:text-ink",
+                      )}
+                    >
+                      <Icon name="user" className="h-[18px] w-[18px]" />
+                      Sign in
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      href="/register"
+                      aria-current={pathname === "/register" ? "page" : undefined}
+                      className={cx(
+                        "relative flex min-h-10 items-center gap-3 rounded-md px-3 text-sm font-medium transition-colors",
+                        pathname === "/register" ? "bg-blue-50 text-primary" : "text-ink-muted hover:bg-surface hover:text-ink",
+                      )}
+                    >
+                      <Icon name="settings" className="h-[18px] w-[18px]" />
+                      Register College
+                    </Link>
+                  </li>
+                </>
+              )}
+            </ul>
+          </div>
         </nav>
         <div className="border-t border-line px-5 py-4 text-xs text-ink-muted">
-          <Stamp tone="warning">{sample ? "Sample data" : "Prototype"}</Stamp>
-          <p className="mt-2 leading-relaxed">No sign-in: use Demo view to switch roles. Data is saved in this browser only.</p>
+          {status === "authenticated" && user ? (
+            <>
+              <Stamp tone="success">Signed in</Stamp>
+              <p className="mt-2 leading-relaxed">
+                {user.name}
+                {activeCollege ? ` · ${activeCollege.collegeName}` : ""}
+              </p>
+            </>
+          ) : (
+            <>
+              <Stamp tone="warning">{sample ? "Sample data" : "Demo Mode"}</Stamp>
+              <p className="mt-2 leading-relaxed">Browser storage only. Completely isolated from real college server data.</p>
+            </>
+          )}
         </div>
       </aside>
 
@@ -128,7 +341,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </span>
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold text-ink" title={dataset.college.name}>
-                {dataset.college.name || "New college (not named yet)"}
+                {status === "authenticated" && activeCollege
+                  ? activeCollege.collegeName
+                  : dataset.college.name || "New college (not named yet)"}
               </p>
               <p className="truncate text-xs text-ink-muted">
                 {dataset.college.semesterLabel}
@@ -140,16 +355,51 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 )}
               </p>
             </div>
-            {sample && (
-              <span className="hidden lg:inline-flex">
-                <Stamp tone="warning">Sample data</Stamp>
-              </span>
+            {status === "authenticated" && user ? (
+              <div className="flex items-center gap-2">
+                <Link
+                  href="/account"
+                  className="rounded-lg border border-line bg-white px-2.5 py-1 text-xs font-semibold text-ink hover:bg-surface"
+                >
+                  {user.name} ({activeCollege?.roles?.join(", ") ?? "User"})
+                </Link>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <span className="hidden lg:inline-flex">
+                  <Stamp tone="warning">Demo Mode (Local Storage)</Stamp>
+                </span>
+                <Link
+                  href="/login"
+                  className="rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-primary-hover"
+                >
+                  Sign In
+                </Link>
+                {ready && <RoleSwitcher id="role-switcher" />}
+              </div>
             )}
-            {ready && <RoleSwitcher id="role-switcher" />}
           </div>
         </header>
 
         <main id="main" className="mx-auto max-w-7xl px-4 pb-28 pt-6 sm:px-6 md:pb-12">
+          {status !== "authenticated" && !isAuthRoute && (
+            <div className="no-print mb-6 rounded-lg border border-amber-200 bg-amber-50/70 p-3.5 text-xs text-amber-900 flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <span className="font-semibold uppercase tracking-wider text-amber-800">Demo Mode Active:</span>
+                <span>You are interacting with local browser data. Real college data is server-hosted with multi-tenant isolation.</span>
+              </div>
+              <div className="flex gap-2">
+                <Link href="/login" className="font-semibold underline hover:text-amber-950">
+                  Sign in
+                </Link>
+                <span>·</span>
+                <Link href="/register" className="font-semibold underline hover:text-amber-950">
+                  Register College
+                </Link>
+              </div>
+            </div>
+          )}
+
           {notices.length > 0 && (
             <div className="no-print mb-6">
               <Banner tone="warning" title="Some saved data was reset" onDismiss={dismissNotices}>
@@ -195,27 +445,57 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 /** Shown when a page belongs to the other demo role. */
 export function RoleNotice({ needs }: { needs: Role["kind"] }) {
   const { dataset, setRole } = useWorkspace();
-  const first = dataset.teachers[0];
+  const label =
+    needs === "coordinator"
+      ? "Timetable Coordinator"
+      : needs === "principal"
+        ? "Principal"
+        : needs === "hod"
+          ? "Head of Department"
+          : needs === "student"
+            ? "Student"
+            : "Teacher";
+
+  const firstTeacher = dataset.teachers[0];
+
   return (
-    <div className="rounded-lg border border-line bg-white px-6 py-10 text-center">
-      <Icon name="users" className="mx-auto h-8 w-8 text-ink-muted" />
-      <p className="mt-3 font-semibold text-ink">This page is for the {needs === "coordinator" ? "timetable coordinator" : "teacher"} view</p>
-      <p className="mx-auto mt-1 max-w-md text-sm text-ink-muted">
-        {needs === "coordinator"
-          ? "Teachers see their own timetable and availability. Switch the demo view to Coordinator to set up the college and generate timetables."
-          : first
-            ? "Coordinators manage every teacher's availability from Set up college. Switch the demo view to a teacher to see their pages."
-            : "Add teachers in Set up college first; then you can view the app as one of them."}
+    <div className="rounded-xl border border-line bg-white px-6 py-12 text-center shadow-xs">
+      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-amber-50 text-amber-700">
+        <Icon name="alert" className="h-6 w-6" />
+      </div>
+      <h2 className="mt-4 text-lg font-bold text-ink">Restricted to {label} View</h2>
+      <p className="mx-auto mt-2 max-w-md text-xs text-ink-muted leading-relaxed">
+        This configuration and operational tool is only accessible when logged in as the {label}.
+        You can easily switch your role to access this area.
       </p>
-      {(needs === "coordinator" || first) && (
+      <div className="mt-6 flex flex-wrap justify-center gap-2">
         <button
           type="button"
-          onClick={() => setRole(needs === "coordinator" ? { kind: "coordinator" } : { kind: "teacher", teacherId: first.id })}
-          className="mt-4 inline-flex min-h-10 items-center rounded-md bg-primary px-4 text-sm font-medium text-white hover:bg-primary-hover"
+          onClick={() => setRole({ kind: "portal" })}
+          className="inline-flex min-h-10 items-center rounded-md border border-line bg-white px-4 text-xs font-semibold text-ink hover:bg-surface"
         >
-          {needs === "coordinator" ? "View as coordinator" : `View as ${first.name}`}
+          Open Role Portal
         </button>
-      )}
+        <button
+          type="button"
+          onClick={() => {
+            if (needs === "coordinator") {
+              setRole({ kind: "coordinator" });
+            } else if (needs === "principal") {
+              setRole({ kind: "principal" });
+            } else if (needs === "hod") {
+              setRole({ kind: "hod", departmentId: dataset.departments[0]?.id ?? "" });
+            } else if (needs === "teacher" && firstTeacher) {
+              setRole({ kind: "teacher", teacherId: firstTeacher.id });
+            } else if (needs === "student") {
+              setRole({ kind: "student", sectionId: dataset.sections[0]?.id ?? "" });
+            }
+          }}
+          className="inline-flex min-h-10 items-center rounded-md bg-primary px-4 text-xs font-semibold text-white hover:bg-primary-hover"
+        >
+          Switch to {label}
+        </button>
+      </div>
     </div>
   );
 }

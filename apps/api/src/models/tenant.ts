@@ -16,7 +16,8 @@ export const membershipSchema = new Schema(
     roles: { type: [{ type: String, enum: COLLEGE_ROLES }], required: true, validate: (v: string[]) => v.length > 0 },
     departmentIds: { type: [Schema.Types.ObjectId], default: [] },
     teacherId: { type: Schema.Types.ObjectId },
-    status: { type: String, enum: ["active", "suspended"], required: true, default: "active" },
+    /** "pending" only for a registration applicant until the college is approved (M16). */
+    status: { type: String, enum: ["pending", "active", "suspended"], required: true, default: "active" },
     invitedBy: { type: Schema.Types.ObjectId },
     rowVersion: { type: Number, required: true, default: 0 },
   },

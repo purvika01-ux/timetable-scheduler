@@ -60,13 +60,16 @@ export function EntityEditor<T extends { id: string }>({
   rowActions?: (item: T) => React.ReactNode;
   intro?: React.ReactNode;
 }) {
-  const { dataset, updateDataset } = useWorkspace();
+  const { dataset, canManageAcademic, saveEntity, deleteEntity, isSyncing } = useWorkspace();
   const toast = useToast();
   const [draft, setDraft] = useState<T | null>(null);
   const [isNew, setIsNew] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [deleting, setDeleting] = useState<T | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const formId = useId();
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -85,9 +88,9 @@ export function EntityEditor<T extends { id: string }>({
     setSaveError(null);
   };
 
-  const save = (e: React.FormEvent) => {
+  const save = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!draft) return;
+    if (!draft || isSaving) return;
     const nextItems = isNew ? [...items, draft] : items.map((x) => (x.id === draft.id ? draft : x));
     const next = datasetWith(nextItems);
     const keys = new Set(fields.map((f) => f.key as string));
@@ -96,24 +99,40 @@ export function EntityEditor<T extends { id: string }>({
       setErrors(found);
       return;
     }
-    const result = updateDataset(next);
-    if (!result.ok) {
-      setSaveError("This browser blocked saving (storage may be full or disabled). Nothing was changed.");
-      return;
+    setIsSaving(true);
+    setSaveError(null);
+    try {
+      const result = await saveEntity(area, draft, isNew);
+      if (!result.ok) {
+        setSaveError(result.error || "Save operation failed. Please check your inputs.");
+        return;
+      }
+      setDraft(null);
+      toast(
+        (result.removed ?? 0) > 0
+          ? `${label(draft)} saved. ${result.removed} ${result.removed === 1 ? "class was" : "classes were"} removed from the timetable because ${result.removed === 1 ? "it no longer matches its course" : "they no longer match their courses"}; generate again or place them by hand.`
+          : `${label(draft)} saved.`,
+      );
+    } finally {
+      setIsSaving(false);
     }
-    setDraft(null);
-    toast(
-      result.removed > 0
-        ? `${label(draft)} saved. ${result.removed} ${result.removed === 1 ? "class was" : "classes were"} removed from the timetable because ${result.removed === 1 ? "it no longer matches its course" : "they no longer match their courses"}; generate again or place them by hand.`
-        : `${label(draft)} saved.`,
-    );
   };
 
-  const remove = () => {
-    if (!deleting) return;
-    const result = updateDataset(datasetWith(items.filter((x) => x.id !== deleting.id)));
-    if (result.ok) toast(`${label(deleting)} deleted.`);
-    setDeleting(null);
+  const remove = async () => {
+    if (!deleting || isDeleting) return;
+    setIsDeleting(true);
+    setDeleteError(null);
+    try {
+      const result = await deleteEntity(area, deleting.id);
+      if (!result.ok) {
+        setDeleteError(result.error || "Could not delete record from server.");
+        return;
+      }
+      toast(`${label(deleting)} deleted.`);
+      setDeleting(null);
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const blockers = deleting ? usedBy(dataset, area, deleting.id) : [];
@@ -121,6 +140,16 @@ export function EntityEditor<T extends { id: string }>({
   return (
     <div className="space-y-4">
       {intro}
+      {!canManageAcademic && (
+        <Banner tone="info" title="View-only access">
+          Your role allows viewing this academic data. Only Timetable Coordinators, Principals/Administrators, and Department Heads can make changes.
+        </Banner>
+      )}
+      {deleteError && (
+        <Banner tone="error" title="Could not delete" onDismiss={() => setDeleteError(null)}>
+          {deleteError}
+        </Banner>
+      )}
       {problems.length > 0 && (
         <Banner tone="error" title={`${problems.length} ${problems.length === 1 ? "problem needs" : "problems need"} fixing here`}>
           <ul className="list-disc space-y-0.5 pl-4">
@@ -134,11 +163,13 @@ export function EntityEditor<T extends { id: string }>({
         </Banner>
       )}
       <Panel
-        title={`${title} (${items.length})`}
+        title={`${title} (${items.length})${isSyncing ? " — Syncing..." : ""}`}
         action={
-          <Button variant="primary" icon="plus" onClick={() => open(blank(), true)}>
-            Add {singular}
-          </Button>
+          canManageAcademic ? (
+            <Button variant="primary" icon="plus" onClick={() => open(blank(), true)}>
+              Add {singular}
+            </Button>
+          ) : undefined
         }
       >
         {items.length === 0 ? (
@@ -147,7 +178,7 @@ export function EntityEditor<T extends { id: string }>({
           </EmptyState>
         ) : (
           <div className="relative -mx-4 overflow-x-auto">
-            <table className="w-full min-w-[560px] text-sm">
+            <table className="w-full min-w-140 text-sm">
               <caption className="sr-only">{title}</caption>
               <thead>
                 <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-ink-muted">
@@ -182,18 +213,25 @@ export function EntityEditor<T extends { id: string }>({
                           type="button"
                           onClick={() => open(item, false)}
                           className="grid h-9 w-9 place-items-center rounded-md text-ink-muted hover:bg-surface hover:text-ink"
-                          aria-label={`Edit ${label(item)}`}
+                          aria-label={canManageAcademic ? `Edit ${label(item)}` : `View ${label(item)}`}
+                          title={canManageAcademic ? "Edit" : "View"}
                         >
                           <Icon name="edit" className="h-4 w-4" />
                         </button>
-                        <button
-                          type="button"
-                          onClick={() => setDeleting(item)}
-                          className="grid h-9 w-9 place-items-center rounded-md text-ink-muted hover:bg-red-50 hover:text-danger"
-                          aria-label={`Delete ${label(item)}`}
-                        >
-                          <Icon name="trash" className="h-4 w-4" />
-                        </button>
+                        {canManageAcademic && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setDeleteError(null);
+                              setDeleting(item);
+                            }}
+                            className="grid h-9 w-9 place-items-center rounded-md text-ink-muted hover:bg-red-50 hover:text-danger"
+                            aria-label={`Delete ${label(item)}`}
+                            title="Delete"
+                          >
+                            <Icon name="trash" className="h-4 w-4" />
+                          </button>
+                        )}
                       </span>
                     </td>
                   </tr>
@@ -207,14 +245,18 @@ export function EntityEditor<T extends { id: string }>({
       <Modal
         open={draft !== null}
         onClose={() => setDraft(null)}
-        title={isNew ? `Add ${singular}` : `Edit ${draft ? label(draft) || singular : singular}`}
+        title={!canManageAcademic ? `View ${draft ? label(draft) || singular : singular}` : isNew ? `Add ${singular}` : `Edit ${draft ? label(draft) || singular : singular}`}
         footer={
-          <>
-            <Button onClick={() => setDraft(null)}>Cancel</Button>
-            <Button type="submit" form={formId} variant="primary" icon="checkCircle">
-              Save
-            </Button>
-          </>
+          !canManageAcademic ? (
+            <Button onClick={() => setDraft(null)}>Close</Button>
+          ) : (
+            <>
+              <Button onClick={() => setDraft(null)} disabled={isSaving}>Cancel</Button>
+              <Button type="submit" form={formId} variant="primary" icon="checkCircle" disabled={isSaving}>
+                {isSaving ? "Saving..." : "Save"}
+              </Button>
+            </>
+          )
         }
       >
         {draft && (
@@ -232,6 +274,7 @@ export function EntityEditor<T extends { id: string }>({
                 draft={draft}
                 error={errors[f.key]}
                 onChange={(value) => {
+                  if (!canManageAcademic) return;
                   setDraft((d) => {
                     if (!d) return d;
                     let next = { ...d } as T;
@@ -257,11 +300,11 @@ export function EntityEditor<T extends { id: string }>({
         open={deleting !== null && blockers.length === 0}
         danger
         title={`Delete ${deleting ? label(deleting) : singular}?`}
-        confirmLabel="Delete"
+        confirmLabel={isDeleting ? "Deleting..." : "Delete"}
         onCancel={() => setDeleting(null)}
         onConfirm={remove}
       >
-        This removes it from your college data in this browser. It cannot be undone, but you can add it again.
+        This will delete the record from the college database. This action cannot be undone.
       </ConfirmDialog>
       <Modal
         open={deleting !== null && blockers.length > 0}

@@ -3,7 +3,17 @@
 
 import type { Connection } from "mongoose";
 
-import { collegeSchema, idempotencyKeySchema, rateLimitSchema, sessionSchema, userSchema } from "./platform.ts";
+import {
+  departmentSchema,
+  requirementSchema,
+  roomSchema,
+  sectionSchema,
+  subjectSchema,
+  teacherAvailabilitySchema,
+  teacherSchema,
+  timetableSchema,
+} from "./academic.ts";
+import { collegeSchema, idempotencyKeySchema, passwordResetSchema, platformAuditEventSchema, rateLimitSchema, sessionSchema, userSchema } from "./platform.ts";
 import { auditEventSchema, invitationSchema, membershipSchema } from "./tenant.ts";
 
 export function registerModels(connection: Connection) {
@@ -13,13 +23,36 @@ export function registerModels(connection: Connection) {
     Session: connection.model("Session", sessionSchema),
     IdempotencyKey: connection.model("IdempotencyKey", idempotencyKeySchema),
     RateLimit: connection.model("RateLimit", rateLimitSchema),
+    PasswordReset: connection.model("PasswordReset", passwordResetSchema),
+    PlatformAuditEvent: connection.model("PlatformAuditEvent", platformAuditEventSchema),
     Membership: connection.model("Membership", membershipSchema),
     Invitation: connection.model("Invitation", invitationSchema),
     AuditEvent: connection.model("AuditEvent", auditEventSchema),
+    Department: connection.model("Department", departmentSchema),
+    Teacher: connection.model("Teacher", teacherSchema),
+    Subject: connection.model("Subject", subjectSchema),
+    Section: connection.model("Section", sectionSchema),
+    Room: connection.model("Room", roomSchema),
+    Requirement: connection.model("Requirement", requirementSchema),
+    TeacherAvailability: connection.model("TeacherAvailability", teacherAvailabilitySchema),
+    Timetable: connection.model("Timetable", timetableSchema),
   };
 }
 
 export type Models = ReturnType<typeof registerModels>;
 
 /** Models whose documents belong to one college (collegeId required, tenantPlugin applied). */
-export const TENANT_MODELS = ["Membership", "Invitation", "AuditEvent"] as const satisfies readonly (keyof Models)[];
+export const TENANT_MODELS = [
+  "Membership",
+  "Invitation",
+  "AuditEvent",
+  "Department",
+  "Teacher",
+  "Subject",
+  "Section",
+  "Room",
+  "Requirement",
+  "TeacherAvailability",
+  "Timetable",
+] as const satisfies readonly (keyof Models)[];
+

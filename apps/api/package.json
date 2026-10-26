@@ -15,12 +15,17 @@
     "lint": "eslint .",
     "test": "node --test \"tests/**/*.test.ts\"",
     "test:unit": "node --test \"tests/unit/**/*.test.ts\"",
-    "test:integration": "node --test \"tests/integration/**/*.test.ts\""
+    "test:integration": "node --test \"tests/integration/**/*.test.ts\"",
+    "keys:generate": "node scripts/generate-keys.ts",
+    "admin:create": "node --env-file-if-exists=.env scripts/create-platform-admin.ts"
   },
   "dependencies": {
+    "@node-rs/argon2": "2.2.2",
     "cors": "2.8.6",
     "express": "5.3.0",
+    "express-rate-limit": "8.7.1",
     "helmet": "8.3.0",
+    "jose": "6.2.13",
     "mongoose": "9.11.4",
     "pino": "10.4.0",
     "pino-http": "11.0.0",

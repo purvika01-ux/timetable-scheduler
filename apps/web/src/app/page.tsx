@@ -3,8 +3,12 @@
 import Link from "next/link";
 import { useMemo } from "react";
 
+import { HodDashboard } from "@/components/hod-dashboard";
 import { Icon } from "@/components/icons";
+import { PrincipalDashboard } from "@/components/principal-dashboard";
+import { RolePortal } from "@/components/role-portal";
 import { SetupChecklist } from "@/components/setup-checklist";
+import { StudentDashboard } from "@/components/student-dashboard";
 import { TeacherDashboard } from "@/components/teacher-dashboard";
 import { ButtonLink, PageSkeleton, Panel, StatTile } from "@/components/ui";
 import { useWorkspace } from "@/lib/store";
@@ -12,9 +16,33 @@ import { teacherLoadReport } from "@/lib/timetable/reports";
 import { validateTimetable } from "@/lib/timetable/validator";
 
 export default function HomePage() {
-  const { ready, viewTeacher } = useWorkspace();
+  const { ready, role, viewTeacher, viewDepartment, viewSection, dataset } = useWorkspace();
   if (!ready) return <PageSkeleton />;
-  return viewTeacher ? <TeacherDashboard teacher={viewTeacher} /> : <CoordinatorHome />;
+
+  if (role.kind === "portal") {
+    return <RolePortal />;
+  }
+
+  if (role.kind === "principal") {
+    return <PrincipalDashboard />;
+  }
+
+  if (role.kind === "hod") {
+    const dept = viewDepartment ?? dataset.departments[0];
+    return dept ? <HodDashboard department={dept} /> : <RolePortal />;
+  }
+
+  if (role.kind === "teacher") {
+    const teacher = viewTeacher ?? dataset.teachers[0];
+    return teacher ? <TeacherDashboard teacher={teacher} /> : <RolePortal />;
+  }
+
+  if (role.kind === "student") {
+    const section = viewSection ?? dataset.sections[0];
+    return section ? <StudentDashboard section={section} /> : <RolePortal />;
+  }
+
+  return <CoordinatorHome />;
 }
 
 function CoordinatorHome() {

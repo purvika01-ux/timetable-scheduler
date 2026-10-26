@@ -3,7 +3,13 @@ import { describe, it } from "node:test";
 
 import { ConfigError, loadConfig } from "../../src/config.ts";
 
-const base = { MONGODB_URI: "mongodb://127.0.0.1:27017/timetable_dev" };
+import { TEST_JWT_PRIVATE_KEY, TEST_MFA_KEY } from "../helpers/api.ts";
+
+const base = {
+  MONGODB_URI: "mongodb://127.0.0.1:27017/timetable_dev",
+  AUTH_JWT_PRIVATE_KEY: TEST_JWT_PRIVATE_KEY,
+  MFA_ENCRYPTION_KEY: TEST_MFA_KEY,
+};
 
 describe("loadConfig", () => {
   it("applies safe defaults for development", () => {
@@ -22,8 +28,11 @@ describe("loadConfig", () => {
   });
 
   for (const [name, env, problem] of [
-    ["a missing database URI", {}, /MONGODB_URI is required/],
-    ["a non-MongoDB URI", { MONGODB_URI: "postgres://x" }, /MONGODB_URI must start with mongodb:\/\//],
+    ["a missing database URI", { AUTH_JWT_PRIVATE_KEY: TEST_JWT_PRIVATE_KEY, MFA_ENCRYPTION_KEY: TEST_MFA_KEY }, /MONGODB_URI is required/],
+    ["a non-MongoDB URI", { ...base, MONGODB_URI: "postgres://x" }, /MONGODB_URI must start with mongodb:\/\//],
+    ["missing JWT private key", { MONGODB_URI: "mongodb://127.0.0.1:27017/timetable_dev", MFA_ENCRYPTION_KEY: TEST_MFA_KEY }, /AUTH_JWT_PRIVATE_KEY is required/],
+    ["missing MFA encryption key", { MONGODB_URI: "mongodb://127.0.0.1:27017/timetable_dev", AUTH_JWT_PRIVATE_KEY: TEST_JWT_PRIVATE_KEY }, /MFA_ENCRYPTION_KEY is required/],
+    ["an invalid MFA encryption key length", { ...base, MFA_ENCRYPTION_KEY: "not-32-bytes" }, /MFA_ENCRYPTION_KEY must be 32 bytes/],
     ["an origin with a path", { ...base, CORS_ORIGINS: "https://app.example.edu/" }, /CORS_ORIGINS.*exact origin/],
     ["a wildcard origin", { ...base, CORS_ORIGINS: "*" }, /CORS_ORIGINS.*exact origin/],
     ["a port out of range", { ...base, PORT: "70000" }, /PORT/],

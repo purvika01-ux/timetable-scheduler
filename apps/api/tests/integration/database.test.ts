@@ -72,10 +72,10 @@ describe("collections and indexes", () => {
     assert.deepEqual(email?.partialFilterExpression, { emailNormalized: { $type: "string" } });
   });
 
-  it("is safe to run setup again (restarts do not fail or drop anything)", async () => {
+  it("is safe to run setup again (restarts do not drop or corrupt anything)", async () => {
     const { setUpDatabase } = await import("../../src/db/setup.ts");
     const result = await setUpDatabase(api.models, silentLogger);
-    assert.equal(result.collections.length, 8);
+    assert.equal(result.collections.length, Object.keys(api.models).length);
   });
 
   it("enforces unique emails, ignoring users without one", async () => {

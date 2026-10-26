@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 
+import { RoleNotice } from "@/components/app-shell";
 import { ClassDialog } from "@/components/class-dialog";
 import { DayAgenda } from "@/components/day-agenda";
 import { Icon } from "@/components/icons";
@@ -12,7 +13,7 @@ import { SubjectLegend, WeekGrid } from "@/components/week-grid";
 import { useNow, useWorkspace } from "@/lib/store";
 import { makeLookup } from "@/lib/timetable/lookup";
 import { dayIdFor, entriesOnDay, weeklyLoad } from "@/lib/timetable/queries";
-import type { DayId, ScheduledEntry, Teacher } from "@/lib/timetable/types";
+import type { DayId, ScheduledEntry, Section, Teacher } from "@/lib/timetable/types";
 import { validateTimetable } from "@/lib/timetable/validator";
 
 const SOURCE_LABEL = {
@@ -22,16 +23,42 @@ const SOURCE_LABEL = {
 } as const;
 
 export default function TimetablePage() {
-  const { ready, viewTeacher } = useWorkspace();
+  const { ready, role, viewTeacher, viewSection, dataset } = useWorkspace();
   if (!ready) return <PageSkeleton />;
-  return viewTeacher ? <TeacherTimetable teacher={viewTeacher} /> : <CollegeTimetable />;
+
+  if (role.kind === "portal") {
+    return <RoleNotice needs="coordinator" />;
+  }
+
+  if (role.kind === "student") {
+    const section = viewSection ?? dataset.sections[0];
+    return section ? <SectionTimetable section={section} /> : <RoleNotice needs="coordinator" />;
+  }
+
+  if (role.kind === "teacher") {
+    const teacher = viewTeacher ?? dataset.teachers[0];
+    return teacher ? <TeacherTimetable teacher={teacher} /> : <RoleNotice needs="coordinator" />;
+  }
+
+  return (
+    <CollegeTimetable
+      isReadOnly={role.kind !== "coordinator"}
+      pageTitle={role.kind === "principal" ? "Master Timetable (Executive Review)" : role.kind === "hod" ? "Department Timetable" : "Timetable"}
+    />
+  );
 }
 
 function savedLabel(updatedAt: string) {
   return new Date(updatedAt).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
 }
 
-function CollegeTimetable() {
+function CollegeTimetable({
+  isReadOnly = false,
+  pageTitle = "Timetable",
+}: {
+  isReadOnly?: boolean;
+  pageTitle?: string;
+}) {
   const { dataset, timetable, saveTimetable } = useWorkspace();
   const toast = useToast();
   const report = useMemo(
@@ -42,8 +69,8 @@ function CollegeTimetable() {
   if (!timetable || !report) {
     return (
       <div>
-        <PageHeader title="Timetable" description="The college's current timetable, by section, teacher, room or department." />
-        <EmptyState icon="calendar" title="No timetable yet" action={<ButtonLink href="/generate" variant="primary" icon="generate">Generate timetable</ButtonLink>}>
+        <PageHeader title={pageTitle} description="The college's current timetable, by section, teacher, room or department." />
+        <EmptyState icon="calendar" title="No timetable yet" action={!isReadOnly ? <ButtonLink href="/generate" variant="primary" icon="generate">Generate timetable</ButtonLink> : undefined}>
           Set up the college, then generate a timetable. It appears here and in every teacher&apos;s view.
         </EmptyState>
       </div>
@@ -54,11 +81,11 @@ function CollegeTimetable() {
   return (
     <div className="space-y-4">
       <PageHeader
-        title="Timetable"
+        title={pageTitle}
         description={
           <>
             {SOURCE_LABEL[timetable.source]}, {timetable.entries.length} classes
-            {timetable.source !== "sample" && `, saved ${savedLabel(timetable.updatedAt)}`}. Select a class to see its details or move it.
+            {timetable.source !== "sample" && `, saved ${savedLabel(timetable.updatedAt)}`}. {isReadOnly ? "Review schedule details by section, teacher, room or department." : "Select a class to see its details or move it."}
           </>
         }
         actions={
@@ -66,9 +93,11 @@ function CollegeTimetable() {
             <Button icon="print" onClick={() => window.print()}>
               Print or save as PDF
             </Button>
-            <ButtonLink href="/generate" icon="generate">
-              Generate again
-            </ButtonLink>
+            {!isReadOnly && (
+              <ButtonLink href="/generate" icon="generate">
+                Generate again
+              </ButtonLink>
+            )}
           </span>
         }
       />
@@ -98,12 +127,16 @@ function CollegeTimetable() {
         entries={timetable.entries}
         availability={dataset.availability}
         flaggedIds={new Set(report.issues.flatMap((i) => i.entryIds))}
-        heading="College timetable"
-        onMove={(entries, message) => {
-          const ok = saveTimetable(entries, "edited", timetable.seed);
-          if (ok) toast(message);
-          return ok;
-        }}
+        heading={pageTitle}
+        onMove={
+          isReadOnly
+            ? undefined
+            : (entries, message) => {
+                const ok = saveTimetable(entries, "edited", timetable.seed);
+                if (ok) toast(message);
+                return ok;
+              }
+        }
       />
     </div>
   );
@@ -261,6 +294,152 @@ function TeacherTimetable({ teacher }: { teacher: Teacher }) {
 
       <p className="no-print mt-4 text-xs text-ink-muted">
         Select a class to see its details. Only the timetable coordinator can move classes; ask them if something needs to change.
+      </p>
+
+      <ClassDialog
+        entry={selected}
+        dataset={dataset}
+        lookup={lookup}
+        entries={timetable.entries}
+        availability={dataset.availability}
+        onClose={() => setSelected(null)}
+      />
+    </div>
+  );
+}
+
+function SectionTimetable({ section }: { section: Section }) {
+  const { dataset, timetable } = useWorkspace();
+  const [view, setView] = useState<"week" | "day">("week");
+  const [selected, setSelected] = useState<ScheduledEntry | null>(null);
+  const now = useNow();
+  const lookup = useMemo(() => makeLookup(dataset), [dataset]);
+  const grid = dataset.grid;
+  const days = useMemo(() => grid.days.map((d) => d.id), [grid]);
+  const today = now ? dayIdFor(now) : null;
+  const [day, setDay] = useState<DayId>(today ?? days[0] ?? "mon");
+
+  if (!timetable) {
+    return (
+      <div>
+        <PageHeader title={`Section ${section.name} Timetable`} description="The weekly class schedule for your section." />
+        <EmptyState icon="calendar" title="No timetable published yet">
+          The timetable coordinator has not generated the timetable yet. Please check back soon.
+        </EmptyState>
+      </div>
+    );
+  }
+
+  const mine = timetable.entries.filter((e) => e.sectionId === section.id);
+  const dayEntries = entriesOnDay(mine, day);
+  const dayIndex = days.indexOf(day);
+  const dayCfg = grid.days.find((d) => d.id === day) ?? grid.days[0];
+
+  return (
+    <div className="space-y-4">
+      <PageHeader
+        title={`Section ${section.name} Timetable`}
+        description={`Weekly class routine · ${weeklyLoad(mine).classes} classes, ${weeklyLoad(mine).periods} periods`}
+        actions={
+          <span className="no-print flex gap-2">
+            <Segmented<"week" | "day">
+              label="View"
+              value={view}
+              onChange={setView}
+              options={[
+                { value: "week", label: "Week" },
+                { value: "day", label: "Day" },
+              ]}
+            />
+            <Button icon="print" onClick={() => window.print()}>
+              Print or save as PDF
+            </Button>
+          </span>
+        }
+      />
+
+      {view === "day" ? (
+        <Panel
+          title={
+            <span className="flex items-center gap-2">
+              {dayCfg.label}
+              {day === today && <Stamp tone="info">Today</Stamp>}
+            </span>
+          }
+          action={
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => setDay(days[dayIndex - 1])}
+                disabled={dayIndex <= 0}
+                className="grid h-9 w-9 place-items-center rounded-md border border-line hover:bg-surface disabled:opacity-40"
+                aria-label="Previous day"
+              >
+                <Icon name="chevronLeft" className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setDay(days[dayIndex + 1])}
+                disabled={dayIndex >= days.length - 1}
+                className="grid h-9 w-9 place-items-center rounded-md border border-line hover:bg-surface disabled:opacity-40"
+                aria-label="Next day"
+              >
+                <Icon name="chevronRight" className="h-4 w-4" />
+              </button>
+            </div>
+          }
+        >
+          <div role="group" aria-label="Choose a day" className="-mx-1 mb-3 flex gap-1 overflow-x-auto pb-1">
+            {grid.days.map((d) => {
+              const count = entriesOnDay(mine, d.id).length;
+              return (
+                <button
+                  key={d.id}
+                  type="button"
+                  aria-pressed={d.id === day}
+                  onClick={() => setDay(d.id)}
+                  className={cx(
+                    "flex min-w-14 flex-1 flex-col items-center rounded-md border px-2 py-1.5 text-sm transition-colors",
+                    d.id === day ? "border-primary bg-blue-50 text-primary" : "border-line text-ink hover:bg-surface",
+                  )}
+                >
+                  <span className="font-semibold">{d.short}</span>
+                  <span className="text-[11px] text-ink-muted">
+                    {count} {count === 1 ? "class" : "classes"}
+                  </span>
+                  {d.id === today && <span className="sr-only">(today)</span>}
+                </button>
+              );
+            })}
+          </div>
+          {dayEntries.length === 0 ? (
+            <EmptyState icon="calendar" title={`No classes on ${dayCfg.label}`}>
+              All {dayCfg.periodCount} periods are free.
+            </EmptyState>
+          ) : (
+            <div className="-mx-4 -mb-4 border-t border-line-soft">
+              <DayAgenda grid={grid} entries={mine} lookup={lookup} day={day} onSelect={setSelected} />
+            </div>
+          )}
+        </Panel>
+      ) : (
+        <div className="space-y-3">
+          <p className="no-print text-sm text-ink-muted lg:hidden">Scroll sideways to see all days, or use the Day view on small screens.</p>
+          <WeekGrid
+            grid={grid}
+            entries={mine}
+            lookup={lookup}
+            perspective="section"
+            onSelect={setSelected}
+            highlightDay={today}
+            caption={`Weekly timetable for Section ${section.name}`}
+          />
+          <SubjectLegend entries={mine} lookup={lookup} />
+        </div>
+      )}
+
+      <p className="no-print mt-4 text-xs text-ink-muted">
+        Select any class above to see its detailed room location, teacher details, and course schedule.
       </p>
 
       <ClassDialog

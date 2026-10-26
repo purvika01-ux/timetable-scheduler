@@ -73,6 +73,8 @@ export class ApiRequestError extends Error {
 
 type Method = "GET" | "HEAD" | "POST" | "PUT" | "PATCH" | "DELETE";
 
+export type RequestCredentialsMode = "omit" | "same-origin" | "include";
+
 export interface RequestOptions {
   method?: Method;
   query?: Record<string, string | number | boolean | undefined | null>;
@@ -85,6 +87,11 @@ export interface RequestOptions {
   idempotencyKey?: string;
   /** Statuses whose body is `{ data }` and should be returned rather than thrown (e.g. 503 from health). */
   acceptStatuses?: number[];
+  credentials?: RequestCredentialsMode;
+  /** Explicit bearer token overriding any client-level token. */
+  token?: string | null;
+  /** When true, sends X-CSRF-Protection: 1 header. */
+  csrfProtection?: boolean;
 }
 
 export interface ApiClientOptions {
@@ -99,6 +106,10 @@ export interface ApiClientOptions {
   /** Injected for tests. */
   sleep?: (ms: number) => Promise<void>;
   randomId?: () => string;
+  /** Default credentials mode for requests (e.g. "include" to send cookies). Defaults to "omit". */
+  credentials?: RequestCredentialsMode;
+  /** Returns the current in-memory bearer access token, if any. */
+  getToken?: () => string | null;
 }
 
 /** The API origin configured for this build (NEXT_PUBLIC_API_BASE_URL), or null when not set. */
@@ -203,9 +214,13 @@ export function createApiClient(options: ApiClientOptions) {
     }
     const mutating = method !== "GET" && method !== "HEAD";
     if (mutating) headers["Idempotency-Key"] = opts.idempotencyKey ?? randomId();
+    const token = opts.token !== undefined ? opts.token : (options.getToken?.() ?? null);
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+    if (opts.csrfProtection) headers["X-CSRF-Protection"] = "1";
 
     const url = urlFor(path, opts.query);
-    const init: RequestInit = { method, headers, body, credentials: "omit" };
+    const creds = opts.credentials ?? options.credentials ?? "omit";
+    const init: RequestInit = { method, headers, body, credentials: creds };
     const attempts = mutating ? 1 : 1 + retries;
     for (let attempt = 1; ; attempt++) {
       try {

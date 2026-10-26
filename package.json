@@ -15,6 +15,7 @@
     "test:api:unit": "npm --prefix apps/api run test:unit",
     "test:api:integration": "npm --prefix apps/api run test:integration",
     "typecheck": "npm --prefix apps/web run typecheck && npm --prefix apps/api run typecheck",
-    "lint": "npm --prefix apps/web run lint && npm --prefix apps/api run lint"
+    "lint": "npm --prefix apps/web run lint && npm --prefix apps/api run lint",
+    "admin:create": "npm --prefix apps/api run admin:create"
   }
 }
