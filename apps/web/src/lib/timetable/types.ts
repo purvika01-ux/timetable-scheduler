@@ -160,6 +160,9 @@ export type IssueKind =
   | "capacity"
   | "roomType"
   | "grid"
+  | "dailyLimit"
+  | "requirement"
+  | "duplicate"
   | "reference";
 
 export interface ValidationIssue {
@@ -168,8 +171,18 @@ export interface ValidationIssue {
   entryIds: string[];
 }
 
+/** A requirement with fewer scheduled sessions than it needs each week. */
+export interface MissingSessions {
+  requirementId: string;
+  missing: number;
+}
+
 export interface ValidationReport {
+  /** True when no entry breaks a rule (no clashes, no misplaced classes). Says nothing about completeness. */
   valid: boolean;
+  /** True when every requirement has all of its weekly sessions. */
+  complete: boolean;
   counts: Record<IssueKind, number>;
   issues: ValidationIssue[];
+  missing: MissingSessions[];
 }

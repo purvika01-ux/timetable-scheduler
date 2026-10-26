@@ -29,6 +29,7 @@ describe("generateTimetable on the standard dataset", () => {
     const report = validateTimetable(STANDARD_DATASET, result.entries, standardAvailability);
     assert.deepEqual(report.issues, []);
     assert.equal(report.valid, true);
+    assert.equal(report.complete, true);
   });
 
   it("keeps labs as one block that never crosses lunch", () => {
