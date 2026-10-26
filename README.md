@@ -112,24 +112,23 @@ No environment variables, API keys, Docker, Python, database or backend server a
 ## Limitations
 
 - Whole-section classes only: no lab batches, electives, combined classes, or co-teaching.
-- The generator is a greedy heuristic with retries, not an optimal solver. It suits a small college; large colleges need the CP-SAT solver planned in `docs/TECHNICAL_PLAN.md`.
+- The generator is a greedy heuristic with retries, not an optimal solver. It suits a small college; repair and improvement stages for larger colleges are designed in `docs/SCHEDULING_ENGINE.md`.
 - One time grid per college. Edit `apps/web/src/lib/timetable/demo-data.ts` to change days, periods, times, or breaks.
 - English only for now. Punjabi is part of the full plan.
 - No PDF export, notifications, or one-day changes (cancellations, substitutes).
 
 ## Future development
 
-The full design is in `docs/`. Among other items, it covers:
+The prototype is growing into a multi-college platform on a MERN-oriented stack: Next.js (React) front end, Node.js and Express API with Zod validation, MongoDB (Atlas, Mumbai region), and a background worker. The design is in `docs/`, starting with `docs/PRODUCT_REQUIREMENTS.md`. It covers, among other items:
 
-- multi-college tenancy with row-level security
-- roles for principals, coordinators, HODs, teachers and students
-- a FastAPI backend with PostgreSQL in an Indian region, and background workers
-- an OR-Tools CP-SAT solver
-- spreadsheet import
-- publishing with an undo window, and SMS and email alerts for changes
-- an offline-capable student view in English and Punjabi
+- strict data isolation between colleges, enforced by the server
+- roles for administrators, principals, coordinators, HODs, teachers and students
+- lab batches, electives, combined classes and co-teaching, with explicit clash rules
+- drafts, versions, publishing with an undo window, and dated changes (cancellations, substitutes)
+- CSV import and export, printable timetables, in-app notifications
+- an offline-capable student and teacher view in English and Punjabi
 
-None of that is built yet. The prototype contains no backend code.
+None of that is built yet. The prototype contains no backend code. The order of work is in `docs/IMPLEMENTATION_ROADMAP.md`.
 
 ## Repository layout
 
@@ -137,7 +136,7 @@ None of that is built yet. The prototype contains no backend code.
 package.json     Root scripts that forward to apps/web (setup, dev, test, build, ...)
 apps/web/        The prototype (Next.js). Screens in src/app, UI in src/components,
                  scheduling logic in src/lib/timetable, localStorage in src/lib/storage.ts
-apps/web/tests/  Node tests for the scheduler, validator, moves, storage and queries
-docs/            Product spec, technical plan, UI/UX guidelines, implementation plan,
-                 architecture review, decision log (the full-platform design is future work)
+apps/web/tests/  Node tests for the scheduler, validator, capacity, moves, storage and queries
+docs/            Product requirements, architecture, database, API, security and scheduling
+                 designs, implementation roadmap, UI/UX guidelines, decision log, audit
 ```
