@@ -1,0 +1,7 @@
+node_modules/
+dist/
+coverage/
+# Secrets: never commit real environment files. The example contains placeholders only.
+.env
+.env.*
+!.env.example
