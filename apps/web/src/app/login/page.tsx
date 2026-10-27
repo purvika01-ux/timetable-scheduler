@@ -218,12 +218,6 @@ export default function LoginPage() {
 
         <div className="mt-6 border-t border-line pt-4 text-center text-xs text-ink-muted space-y-2">
           <p>
-            New institution?{" "}
-            <Link href="/register" className="font-semibold text-primary hover:underline">
-              Register college onboarding
-            </Link>
-          </p>
-          <p>
             No account?{" "}
             <Link href="/" className="font-semibold text-primary hover:underline">
               Continue without signing in

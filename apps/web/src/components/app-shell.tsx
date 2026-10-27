@@ -292,19 +292,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       Sign in
                     </Link>
                   </li>
-                  <li>
-                    <Link
-                      href="/register"
-                      aria-current={pathname === "/register" ? "page" : undefined}
-                      className={cx(
-                        "relative flex min-h-10 items-center gap-3 rounded-md px-3 text-sm font-medium transition-colors",
-                        pathname === "/register" ? "bg-blue-50 text-primary" : "text-ink-muted hover:bg-surface hover:text-ink",
-                      )}
-                    >
-                      <Icon name="settings" className="h-[18px] w-[18px]" />
-                      Register College
-                    </Link>
-                  </li>
                 </>
               )}
             </ul>

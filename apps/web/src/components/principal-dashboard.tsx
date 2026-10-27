@@ -68,6 +68,9 @@ export function PrincipalDashboard() {
               Switch Role
             </Button>
           )}
+          <ButtonLink href="/register" icon="settings">
+            Register college
+          </ButtonLink>
           <Button icon="print" onClick={() => window.print()}>
             Print Master
           </Button>

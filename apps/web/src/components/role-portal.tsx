@@ -305,12 +305,6 @@ export function RolePortal() {
         </div>
         <div className="flex gap-2">
           <Link
-            href="/register"
-            className="rounded-md border border-line bg-white px-3 py-1.5 text-xs font-medium text-ink hover:bg-slate-50"
-          >
-            Register College
-          </Link>
-          <Link
             href="/login"
             className="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-primary-hover"
           >
