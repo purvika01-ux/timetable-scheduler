@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
 import { useAuth } from "./auth-context";
+import { collegeWorkspaceFromApi, emptyCollegeWorkspace, type ServerTimetable } from "./college-workspace";
 import { LEGACY_KEYS, readStorage, removeStorage, STORAGE_KEYS, writeStorage } from "./storage";
 import { pruneAvailability, type SetupArea } from "./timetable/college";
 import { STANDARD_DATASET } from "./timetable/demo-data";
@@ -187,7 +188,10 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   const { activeCollege, api } = useAuth();
   const [ready, setReady] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
-  const [workspace, setWorkspace] = useState<Workspace>(() => sampleWorkspace(STANDARD_DATASET));
+  // The browser demo lives in localStorage. A signed-in college's data stays in memory only (no
+  // personal data in browser storage, CLAUDE.md rule 8) and is never mixed with the demo.
+  const [demoWorkspace, setDemoWorkspace] = useState<Workspace>(() => sampleWorkspace(STANDARD_DATASET));
+  const [college, setCollege] = useState<{ collegeId: string; workspace: Workspace } | null>(null);
   const [role, setRoleState] = useState<Role>({ kind: "portal" });
   const [notices, setNotices] = useState<string[]>([]);
 
@@ -203,34 +207,31 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       LEGACY_KEYS.forEach(removeStorage);
       if (!parsed.value) found.push("This browser had data from an earlier version of the demo. The sample college was loaded instead.");
     }
-    if (parsed.value) setWorkspace(parsed.value);
+    if (parsed.value) setDemoWorkspace(parsed.value);
     setRoleState(parseRole(readStorage(STORAGE_KEYS.role)));
     setNotices(found);
     setReady(true);
   }, []);
 
-  // Sync with API when an active college membership is present
+  // Load the signed-in college from the API. Until it arrives the college shows as empty, never
+  // as the demo or as the previously selected college.
   useEffect(() => {
-    if (!activeCollege) return;
+    if (!activeCollege) {
+      setCollege(null);
+      return;
+    }
+    const collegeId = activeCollege.collegeId;
     let cancelled = false;
     setIsSyncing(true);
+    setCollege({ collegeId, workspace: emptyCollegeWorkspace(collegeId, activeCollege.collegeName) });
 
-    api.request<{
-      college: { name: string; shortName: string; semesterLabel?: string };
-      departments: Department[];
-      teachers: Teacher[];
-      subjects: Subject[];
-      sections: Section[];
-      rooms: Room[];
-      requirements: SessionRequirement[];
-      availability: Record<string, string[]>;
-    }>(`/colleges/${activeCollege.collegeId}/academic`)
+    api.request<Dataset>(`/colleges/${collegeId}/academic`)
       .then(async (res) => {
         if (cancelled) return;
         // If college has 0 departments, seed initial demo dataset
         if (res.departments.length === 0) {
           try {
-            const seeded = await api.request<typeof res>(`/colleges/${activeCollege.collegeId}/academic/seed`, { method: "POST" });
+            const seeded = await api.request<Dataset>(`/colleges/${collegeId}/academic/seed`, { method: "POST" });
             if (cancelled) return;
             res = seeded;
           } catch {
@@ -238,51 +239,17 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
           }
         }
 
-        // Fetch saved timetable from server
-        let serverTimetable: { source: string; seed: number | null; entries: ScheduledEntry[]; updatedAt: string } | null = null;
-        try {
-          serverTimetable = await api.request<{ source: string; seed: number | null; entries: ScheduledEntry[]; updatedAt: string } | null>(
-            `/colleges/${activeCollege.collegeId}/academic/timetable`,
-          );
-        } catch {
-          // ignore if timetable endpoint unavailable or not yet created
-        }
-
+        const serverTimetable = await api.request<ServerTimetable | null>(
+          `/colleges/${collegeId}/academic/timetable`,
+        );
         if (cancelled) return;
 
-        setWorkspace((prev) => {
-          const nextDataset: Dataset = {
-            ...prev.dataset,
-            college: {
-              ...prev.dataset.college,
-              name: res.college?.name || prev.dataset.college.name,
-              shortName: res.college?.shortName || prev.dataset.college.shortName,
-              semesterLabel: res.college?.semesterLabel || prev.dataset.college.semesterLabel,
-            },
-            departments: res.departments,
-            teachers: res.teachers,
-            subjects: res.subjects,
-            sections: res.sections,
-            rooms: res.rooms,
-            requirements: res.requirements,
-            availability: (res.availability as Record<string, SlotKey[]>) || {},
-          };
-          return {
-            ...prev,
-            dataset: nextDataset,
-            timetable: serverTimetable && serverTimetable.entries
-              ? {
-                  source: (serverTimetable.source as TimetableSource) || "generated",
-                  seed: serverTimetable.seed,
-                  entries: serverTimetable.entries,
-                  updatedAt: serverTimetable.updatedAt,
-                }
-              : prev.timetable,
-          };
-        });
+        setCollege({ collegeId, workspace: collegeWorkspaceFromApi(collegeId, activeCollege.collegeName, res, serverTimetable) });
       })
       .catch((err) => {
-        console.warn("Could not sync academic dataset with API, using cached workspace:", err);
+        if (cancelled) return;
+        const reason = err instanceof Error ? err.message : "the server did not answer";
+        setNotices((n) => [...n, `${activeCollege.collegeName} could not be loaded from the server (${reason}). Nothing shown here is that college's data; reload to try again.`]);
       })
       .finally(() => {
         if (!cancelled) setIsSyncing(false);
@@ -293,12 +260,21 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     };
   }, [activeCollege, api]);
 
+  const workspace = activeCollege && college?.collegeId === activeCollege.collegeId ? college.workspace : demoWorkspace;
 
-  const persist = useCallback((next: Workspace) => {
-    if (!writeStorage(STORAGE_KEYS.workspace, next)) return false;
-    setWorkspace(next);
-    return true;
-  }, []);
+  const persist = useCallback(
+    (next: Workspace) => {
+      if (activeCollege) {
+        const collegeId = activeCollege.collegeId;
+        setCollege((current) => (current?.collegeId === collegeId ? { collegeId, workspace: next } : current));
+        return true;
+      }
+      if (!writeStorage(STORAGE_KEYS.workspace, next)) return false;
+      setDemoWorkspace(next);
+      return true;
+    },
+    [activeCollege],
+  );
 
   const updateDataset = useCallback(
     (next: Dataset) => {
