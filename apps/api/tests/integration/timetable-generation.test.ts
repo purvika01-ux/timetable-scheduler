@@ -175,7 +175,7 @@ describe("Core Timetable Generation and Independent Server Validation", () => {
 
     const report = valRes.body.data;
     assert.equal(report.valid, false, "must fail validation");
-    assert.ok(report.counts.teacher >= 1, "must report at least 1 teacher clash");
+    assert.ok((report.counts.teacher ?? 0) >= 1, "must report at least 1 teacher clash");
     assert.ok(report.issues.some((i) => i.kind === "teacher" && i.message.includes("booked twice")));
   });
 
@@ -198,7 +198,7 @@ describe("Core Timetable Generation and Independent Server Validation", () => {
     );
     const report = valRes.body.data;
     assert.equal(report.valid, false);
-    assert.ok(report.counts.room >= 1, "must report room clash");
+    assert.ok((report.counts.room ?? 0) >= 1, "must report room clash");
   });
 
   it("server validator catches room capacity and type violations", async () => {
