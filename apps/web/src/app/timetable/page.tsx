@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-import { RoleNotice } from "@/components/app-shell";
+import { RoleNotice, UnlinkedNotice } from "@/components/app-shell";
 import { ClassDialog } from "@/components/class-dialog";
 import { DayAgenda } from "@/components/day-agenda";
 import { Icon } from "@/components/icons";
@@ -28,6 +28,11 @@ export default function TimetablePage() {
 
   if (role.kind === "portal") {
     return <RoleNotice needs="coordinator" />;
+  }
+
+  if (role.kind === "unlinked") {
+    // A head of department may view the whole college (read only) until a department is linked.
+    return role.reason === "hod" ? <CollegeTimetable isReadOnly pageTitle="College timetable (read only)" /> : <UnlinkedNotice reason={role.reason} />;
   }
 
   if (role.kind === "student") {

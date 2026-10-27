@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
 import { useAuth } from "./auth-context";
+import { roleFromMembership } from "./signed-in-role";
 import { collegeWorkspaceFromApi, emptyCollegeWorkspace, type ServerTimetable } from "./college-workspace";
 import { LEGACY_KEYS, readStorage, removeStorage, STORAGE_KEYS, writeStorage } from "./storage";
 import { pruneAvailability, type SetupArea } from "./timetable/college";
@@ -17,7 +18,9 @@ export type Role =
   | { kind: "principal" }
   | { kind: "hod"; departmentId: string }
   | { kind: "teacher"; teacherId: string }
-  | { kind: "student"; sectionId: string };
+  | { kind: "student"; sectionId: string }
+  /** Signed in, but the account is not linked to the record its role needs (or has no college). */
+  | { kind: "unlinked"; reason: "hod" | "teacher" | "student" | "noCollege" };
 
 interface WorkspaceStore {
   /** False until browser storage has been read (avoids hydration mismatches). */
@@ -28,6 +31,8 @@ interface WorkspaceStore {
   dataset: Dataset;
   timetable: SavedTimetable | null;
   role: Role;
+  /** True in the browser demo; false when signed in, where the role comes from the membership. */
+  isDemo: boolean;
   /** The teacher being viewed in the teacher role, if any. */
   viewTeacher: Teacher | null;
   /** The department being viewed in the HOD role, if any. */
@@ -195,7 +200,8 @@ function datasetWithoutItem(dataset: Dataset, area: SetupArea, id: string): Data
 }
 
 export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
-  const { activeCollege, api } = useAuth();
+  const { activeCollege, api, status } = useAuth();
+  const signedIn = status === "authenticated";
   const [ready, setReady] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   // The browser demo lives in localStorage. A signed-in college's data stays in memory only (no
@@ -415,10 +421,15 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     [persist],
   );
 
-  const setRole = useCallback((next: Role) => {
-    writeStorage(STORAGE_KEYS.role, next);
-    setRoleState(next);
-  }, []);
+  // The demo role switch only exists in the demo; signed in, the membership decides.
+  const setRole = useCallback(
+    (next: Role) => {
+      if (signedIn) return;
+      writeStorage(STORAGE_KEYS.role, next);
+      setRoleState(next);
+    },
+    [signedIn],
+  );
 
   // Mirrors the API's role capabilities (apps/api/src/auth/permissions.ts); the server still decides.
   const canManageAcademic = useMemo(() => {
@@ -430,6 +441,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
 
   const { dataset, timetable } = workspace;
   const effectiveRole: Role = useMemo(() => {
+    if (signedIn) return roleFromMembership(activeCollege?.roles ?? null);
     if (role.kind === "portal" || role.kind === "coordinator" || role.kind === "principal") return role;
     if (role.kind === "hod") {
       if (dataset.departments.some((d) => d.id === role.departmentId)) return role;
@@ -444,7 +456,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       return dataset.sections[0] ? { kind: "student", sectionId: dataset.sections[0].id } : { kind: "coordinator" };
     }
     return { kind: "portal" };
-  }, [role, dataset.departments, dataset.teachers, dataset.sections]);
+  }, [signedIn, activeCollege, role, dataset.departments, dataset.teachers, dataset.sections]);
 
   const viewTeacher = effectiveRole.kind === "teacher" ? (dataset.teachers.find((t) => t.id === effectiveRole.teacherId) ?? null) : null;
   const viewDepartment = effectiveRole.kind === "hod" ? (dataset.departments.find((d) => d.id === effectiveRole.departmentId) ?? null) : null;
@@ -458,6 +470,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     dataset,
     timetable,
     role: effectiveRole,
+    isDemo: !signedIn,
     viewTeacher,
     viewDepartment,
     viewSection,

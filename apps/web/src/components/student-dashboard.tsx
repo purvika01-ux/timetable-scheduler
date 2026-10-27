@@ -11,7 +11,7 @@ import { dayIdFor, entriesOnDay } from "@/lib/timetable/queries";
 import type { Section } from "@/lib/timetable/types";
 
 export function StudentDashboard({ section }: { section: Section }) {
-  const { dataset, timetable, setRole } = useWorkspace();
+  const { dataset, timetable, setRole, isDemo } = useWorkspace();
   const now = useNow();
 
   const entries = useMemo(() => timetable?.entries ?? [], [timetable]);
@@ -68,7 +68,7 @@ export function StudentDashboard({ section }: { section: Section }) {
         </div>
 
         <div className="flex flex-wrap items-center gap-2 pt-2 sm:pt-0">
-          {dataset.sections.length > 1 && (
+          {isDemo && dataset.sections.length > 1 && (
             <select
               value={section.id}
               onChange={(e) => setRole({ kind: "student", sectionId: e.target.value })}
@@ -81,9 +81,11 @@ export function StudentDashboard({ section }: { section: Section }) {
               ))}
             </select>
           )}
-          <Button variant="ghost" icon="refresh" onClick={() => setRole({ kind: "portal" })}>
-            Switch Role
-          </Button>
+          {isDemo && (
+            <Button variant="ghost" icon="refresh" onClick={() => setRole({ kind: "portal" })}>
+              Switch Role
+            </Button>
+          )}
           <Button icon="print" onClick={() => window.print()}>
             Print Routine
           </Button>

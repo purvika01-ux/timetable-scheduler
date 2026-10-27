@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo } from "react";
 
+import { UnlinkedNotice } from "@/components/app-shell";
 import { HodDashboard } from "@/components/hod-dashboard";
 import { Icon } from "@/components/icons";
 import { PrincipalDashboard } from "@/components/principal-dashboard";
@@ -18,6 +19,10 @@ import { validateTimetable } from "@/lib/timetable/validator";
 export default function HomePage() {
   const { ready, role, viewTeacher, viewDepartment, viewSection, dataset } = useWorkspace();
   if (!ready) return <PageSkeleton />;
+
+  if (role.kind === "unlinked") {
+    return <UnlinkedNotice reason={role.reason} />;
+  }
 
   if (role.kind === "portal") {
     return <RolePortal />;
@@ -46,7 +51,7 @@ export default function HomePage() {
 }
 
 function CoordinatorHome() {
-  const { dataset, timetable } = useWorkspace();
+  const { dataset, timetable, isDemo } = useWorkspace();
   const report = useMemo(() => (timetable ? validateTimetable(dataset, timetable.entries, dataset.availability) : null), [dataset, timetable]);
   const loads = useMemo(() => (timetable ? teacherLoadReport(dataset, timetable.entries) : []), [dataset, timetable]);
   const overLimit = loads.filter((l) => l.busiestDay && l.busiestDay.periods > l.dailyLimit).length;
@@ -60,9 +65,11 @@ function CoordinatorHome() {
           <p className="text-sm text-ink-muted">Timetable coordinator</p>
           <h1 className="mt-0.5 text-2xl font-semibold text-ink">{dataset.college.name || "Set up your college"}</h1>
           <p className="mt-1 text-sm text-ink-muted">
-            {dataset.id === "custom"
-              ? "Your college's data is saved in this browser. Keep a copy with Save and open."
-              : "You are looking at invented sample data. Start a blank college from Save and open to enter your own."}
+            {!isDemo
+              ? "Signed in: your college's data is loaded from the server, and changes are saved there."
+              : dataset.id === "custom"
+                ? "Your college's data is saved in this browser. Keep a copy with Save and open."
+                : "You are looking at invented sample data. Start a blank college from Save and open to enter your own."}
           </p>
         </div>
         <div className="flex gap-2">
@@ -111,12 +118,12 @@ function CoordinatorHome() {
               ))}
             </ul>
           </Panel>
-          <Panel title="Teacher view">
+          {isDemo && <Panel title="Teacher view">
             <p className="text-sm text-ink-muted">
               Use <strong>Demo view</strong> at the top to see the app as any teacher: their day, week and availability. In the full product each
               person signs in and sees only their own view.
             </p>
-          </Panel>
+          </Panel>}
         </div>
       </div>
     </div>

@@ -9,7 +9,7 @@ import { roomUseReport, teacherLoadReport } from "@/lib/timetable/reports";
 import { validateTimetable } from "@/lib/timetable/validator";
 
 export function PrincipalDashboard() {
-  const { dataset, timetable, setRole } = useWorkspace();
+  const { dataset, timetable, setRole, isDemo } = useWorkspace();
 
   const report = useMemo(
     () => (timetable ? validateTimetable(dataset, timetable.entries, dataset.availability) : null),
@@ -63,9 +63,11 @@ export function PrincipalDashboard() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2 pt-2 sm:pt-0">
-          <Button variant="ghost" icon="refresh" onClick={() => setRole({ kind: "portal" })}>
-            Switch Role
-          </Button>
+          {isDemo && (
+            <Button variant="ghost" icon="refresh" onClick={() => setRole({ kind: "portal" })}>
+              Switch Role
+            </Button>
+          )}
           <Button icon="print" onClick={() => window.print()}>
             Print Master
           </Button>

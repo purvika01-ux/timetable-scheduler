@@ -8,7 +8,7 @@ import { teacherLoadReport } from "@/lib/timetable/reports";
 import type { Department } from "@/lib/timetable/types";
 
 export function HodDashboard({ department }: { department: Department }) {
-  const { dataset, timetable, setRole } = useWorkspace();
+  const { dataset, timetable, setRole, isDemo } = useWorkspace();
 
   const entries = useMemo(() => timetable?.entries ?? [], [timetable]);
   const teacherLoads = useMemo(() => (timetable ? teacherLoadReport(dataset, entries) : []), [dataset, entries, timetable]);
@@ -44,7 +44,7 @@ export function HodDashboard({ department }: { department: Department }) {
         </div>
 
         <div className="flex flex-wrap items-center gap-2 pt-2 sm:pt-0">
-          {dataset.departments.length > 1 && (
+          {isDemo && dataset.departments.length > 1 && (
             <select
               value={department.id}
               onChange={(e) => setRole({ kind: "hod", departmentId: e.target.value })}
@@ -57,9 +57,11 @@ export function HodDashboard({ department }: { department: Department }) {
               ))}
             </select>
           )}
-          <Button variant="ghost" icon="refresh" onClick={() => setRole({ kind: "portal" })}>
-            Switch Role
-          </Button>
+          {isDemo && (
+            <Button variant="ghost" icon="refresh" onClick={() => setRole({ kind: "portal" })}>
+              Switch Role
+            </Button>
+          )}
           <ButtonLink href="/timetable" variant="primary" icon="calendar">
             Department Timetable
           </ButtonLink>

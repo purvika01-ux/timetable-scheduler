@@ -6,22 +6,10 @@ import React, { useState } from "react";
 
 import { ApiRequestError } from "@/lib/api/client";
 import { useAuth } from "@/lib/auth-context";
+import { landingPath } from "@/lib/signed-in-role";
 
 function getRoleRedirect(user?: { platformRoles?: string[] }, memberships?: { roles: string[] }[]): string {
-  if (user?.platformRoles?.includes("PA")) {
-    return "/platform";
-  }
-  const roles = memberships?.[0]?.roles ?? [];
-  if (roles.includes("TC")) {
-    return "/timetable";
-  }
-  if (roles.includes("CA") || roles.includes("PR")) {
-    return "/account";
-  }
-  if (roles.includes("HOD") || roles.includes("TE") || roles.includes("ST")) {
-    return "/";
-  }
-  return "/account";
+  return landingPath(user?.platformRoles ?? [], (memberships?.length ?? 0) > 0);
 }
 
 export default function LoginPage() {

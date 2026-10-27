@@ -58,7 +58,9 @@ function RoleSwitcher({ id }: { id: string }) {
             ? `hod:${role.departmentId}`
             : role.kind === "teacher"
               ? `teacher:${role.teacherId}`
-              : `student:${role.sectionId}`;
+              : role.kind === "student"
+                ? `student:${role.sectionId}`
+                : "portal";
 
   return (
     <div className="flex items-center gap-1.5">
@@ -138,10 +140,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const now = useNow();
 
   const userRoles = activeCollege?.roles ?? [];
-  const isStaff = userRoles.some((r) => ["CA", "PR", "TC"].includes(r));
-  const isTeacher = userRoles.includes("TE");
-  const isHod = userRoles.includes("HOD");
-  const isStudent = userRoles.includes("ST");
 
   let effectiveNav: NavItem[] = COORDINATOR_NAV;
   let roleLabel = "Coordinator";
@@ -169,22 +167,21 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     roleLabel = sec ? `Student (${sec.name})` : "Student";
   }
 
+  // Signed in, `role` already comes from the membership (lib/signed-in-role.ts); only labels differ.
   if (status === "authenticated" && user) {
     if (user.platformRoles.includes("PA") && !activeCollege) {
       effectiveNav = [];
       roleLabel = "Platform Admin";
-    } else if (isStaff) {
-      effectiveNav = COORDINATOR_NAV;
+    } else if (role.kind === "coordinator") {
       roleLabel = userRoles.includes("CA") ? "College Administrator" : "Timetable Coordinator";
-    } else if (isHod) {
-      effectiveNav = HOD_NAV;
-      roleLabel = "Head of Department";
-    } else if (isTeacher) {
-      effectiveNav = TEACHER_NAV;
-      roleLabel = "Teacher";
-    } else if (isStudent) {
-      effectiveNav = STUDENT_NAV;
-      roleLabel = "Student";
+    } else if (role.kind === "principal") {
+      roleLabel = "Principal";
+    } else if (role.kind === "unlinked") {
+      effectiveNav =
+        role.reason === "hod"
+          ? [HOME_NAV, { href: "/timetable", label: "Timetable", short: "Timetable", icon: "calendar", phone: true }]
+          : [HOME_NAV];
+      roleLabel = UNLINKED_LABEL[role.reason];
     }
   }
 
@@ -442,9 +439,49 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   );
 }
 
-/** Shown when a page belongs to the other demo role. */
+const HOME_NAV: NavItem = { href: "/", label: "Home", short: "Home", icon: "dashboard", phone: true };
+
+const UNLINKED_LABEL: Record<Extract<Role, { kind: "unlinked" }>["reason"], string> = {
+  hod: "Head of Department",
+  teacher: "Teacher",
+  student: "Student",
+  noCollege: "No college",
+};
+
+/** Signed in, but the account is not linked to the record its role needs yet. */
+export function UnlinkedNotice({ reason }: { reason: Extract<Role, { kind: "unlinked" }>["reason"] }) {
+  const { activeCollege } = useAuth();
+  const college = activeCollege?.collegeName ?? "your college";
+  const text =
+    reason === "noCollege"
+      ? "Your account is not a member of a college yet. Accept an invitation from your college administrator, or register a college."
+      : reason === "hod"
+        ? `Your account in ${college} is not linked to a department yet, so there is no department view. You can open the college timetable (read only). Ask your college administrator to link your department.`
+        : reason === "teacher"
+          ? `Your account in ${college} is not linked to a teacher record yet, so your own timetable and availability cannot be shown. Ask your college administrator to link it.`
+          : `Your account in ${college} is not linked to a section yet, so your section's timetable cannot be shown. Ask your college administrator to link it.`;
+  return (
+    <div className="rounded-xl border border-line bg-white px-6 py-12 text-center shadow-xs">
+      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-amber-50 text-amber-700">
+        <Icon name="info" className="h-6 w-6" />
+      </div>
+      <h2 className="mt-4 text-lg font-bold text-ink">{reason === "noCollege" ? "No college yet" : "Your account is not linked yet"}</h2>
+      <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-ink-muted">{text}</p>
+      <div className="mt-6 flex flex-wrap justify-center gap-2">
+        <Link
+          href="/account"
+          className="inline-flex min-h-10 items-center rounded-md border border-line bg-white px-4 text-sm font-semibold text-ink hover:bg-surface"
+        >
+          Your account
+        </Link>
+      </div>
+    </div>
+  );
+}
+
+/** Shown when a page belongs to another role: in the demo it offers the switch, signed in it does not. */
 export function RoleNotice({ needs }: { needs: Role["kind"] }) {
-  const { dataset, setRole } = useWorkspace();
+  const { dataset, setRole, isDemo } = useWorkspace();
   const label =
     needs === "coordinator"
       ? "Timetable Coordinator"
@@ -457,6 +494,25 @@ export function RoleNotice({ needs }: { needs: Role["kind"] }) {
             : "Teacher";
 
   const firstTeacher = dataset.teachers[0];
+
+  if (!isDemo) {
+    return (
+      <div className="rounded-xl border border-line bg-white px-6 py-12 text-center shadow-xs">
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-amber-50 text-amber-700">
+          <Icon name="alert" className="h-6 w-6" />
+        </div>
+        <h2 className="mt-4 text-lg font-bold text-ink">Not available for your role</h2>
+        <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-ink-muted">
+          This page is for the {label}. Your roles in this college do not include it.
+        </p>
+        <div className="mt-6 flex flex-wrap justify-center gap-2">
+          <Link href="/" className="inline-flex min-h-10 items-center rounded-md bg-primary px-4 text-sm font-semibold text-white hover:bg-primary-hover">
+            Go to your home page
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="rounded-xl border border-line bg-white px-6 py-12 text-center shadow-xs">
