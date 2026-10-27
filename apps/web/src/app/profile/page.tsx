@@ -5,7 +5,7 @@ import { useMemo } from "react";
 import { RoleNotice } from "@/components/app-shell";
 import { Icon } from "@/components/icons";
 import { SUBJECT_STYLE } from "@/components/subject-style";
-import { cx, PageHeader, PageSkeleton, Panel, Stamp } from "@/components/ui";
+import { cx, PageHeader, PageSkeleton, Panel } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 import { useWorkspace } from "@/lib/store";
 import { weeklyLoad } from "@/lib/timetable/queries";
@@ -36,11 +36,6 @@ export default function ProfilePage() {
             <div>
               <p className="text-lg font-semibold text-ink">{teacher.name}</p>
               {teacher.designation && <p className="text-sm text-ink-muted">{teacher.designation}</p>}
-              {dataset.id !== "custom" && (
-                <div className="mt-1">
-                  <Stamp tone="warning">Sample profile</Stamp>
-                </div>
-              )}
             </div>
           </div>
           <dl className="mt-5 space-y-3 text-sm">
@@ -118,11 +113,11 @@ export default function ProfilePage() {
                 <>
                   <li className="flex gap-2">
                     <Icon name="info" className="mt-0.5 h-4 w-4 shrink-0" />
-                    This is the demo: the Demo view switch at the top shows the app as any teacher or as the coordinator.
+                    Without signing in, the Role switch at the top shows the app as any teacher or as the coordinator.
                   </li>
                   <li className="flex gap-2">
                     <Icon name="info" className="mt-0.5 h-4 w-4 shrink-0" />
-                    The demo is stored only in this browser (localStorage). Nothing is sent to a server or shared with other users.
+                    Without signing in, data is stored only in this browser (localStorage). Nothing is sent to a server or shared with other users.
                   </li>
                 </>
               )}

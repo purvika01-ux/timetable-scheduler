@@ -86,7 +86,7 @@ function RoleSwitcher({ id }: { id: string }) {
             }
           }}
           className="h-9 max-w-40 rounded-md border border-line bg-white px-2 text-xs font-medium text-ink sm:max-w-60 focus:border-primary focus:outline-none"
-          aria-label="Demo view: choose whose view of the app to see"
+          aria-label="Role: choose whose view of the app to see"
         >
           <option value="portal">✦ Role Selection Portal</option>
           <option value="coordinator">⚙️ Coordinator</option>
@@ -187,8 +187,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const phoneNav = effectiveNav.filter((n) => n.phone);
   const isActive = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
-  const isAuthRoute = pathname === "/login" || pathname === "/register" || pathname === "/account" || pathname === "/platform";
-  const sample = dataset.id !== "custom";
 
   return (
     <div className="min-h-screen bg-surface">
@@ -321,12 +319,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 {activeCollege ? ` · ${activeCollege.collegeName}` : ""}
               </p>
             </>
-          ) : (
-            <>
-              <Stamp tone="warning">{sample ? "Sample data" : "Demo Mode"}</Stamp>
-              <p className="mt-2 leading-relaxed">Browser storage only. Completely isolated from real college server data.</p>
-            </>
-          )}
+          ) : null}
         </div>
       </aside>
 
@@ -363,9 +356,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </div>
             ) : (
               <div className="flex items-center gap-2">
-                <span className="hidden lg:inline-flex">
-                  <Stamp tone="warning">Demo Mode (Local Storage)</Stamp>
-                </span>
                 <Link
                   href="/login"
                   className="rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-primary-hover"
@@ -379,24 +369,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </header>
 
         <main id="main" className="mx-auto max-w-7xl px-4 pb-28 pt-6 sm:px-6 md:pb-12">
-          {status !== "authenticated" && !isAuthRoute && (
-            <div className="no-print mb-6 rounded-lg border border-amber-200 bg-amber-50/70 p-3.5 text-xs text-amber-900 flex flex-wrap items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <span className="font-semibold uppercase tracking-wider text-amber-800">Demo Mode Active:</span>
-                <span>You are interacting with local browser data. Real college data is server-hosted with multi-tenant isolation.</span>
-              </div>
-              <div className="flex gap-2">
-                <Link href="/login" className="font-semibold underline hover:text-amber-950">
-                  Sign in
-                </Link>
-                <span>·</span>
-                <Link href="/register" className="font-semibold underline hover:text-amber-950">
-                  Register College
-                </Link>
-              </div>
-            </div>
-          )}
-
           {notices.length > 0 && (
             <div className="no-print mb-6">
               <Banner tone="warning" title="Some saved data was reset" onDismiss={dismissNotices}>

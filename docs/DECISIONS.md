@@ -104,3 +104,9 @@ Answers to the decisions in `PRODUCT_AUDIT.md` section 11. The product becomes a
 | M21 | N1 for this phase: the student role (ST) exists and students can be invited and sign in like staff, so permissions and isolation tests cover them. The share-link or QR route remains open for Phase 9. |
 | M22 | The browser-only demo stays, moved under `/demo` with a permanent banner (invented data, stays in this browser). It never calls the API and never mixes with signed-in college data. Facility manager (FM) is not in the approved scope and is not added. |
 | M23 | Work continues on branch `auth-and-access`, created from `api-foundation`. |
+
+## 2026-10-27: Demo and sample-data labels removed (owner: Purvika)
+
+| Id | Decision |
+| --- | --- |
+| M24 | The owner directed that the "Demo mode" and "Sample data" badges and banners be removed from the screens (header badge, the banner above every page, the sidebar note, the "Sample profile" badge and the "demo" wording on links). Supersedes the banner part of M22 and the "sample data is labelled as sample data" part of CLAUDE.md rule 9. The browser-only mode itself stays, still separate from signed-in college data; the sample college remains available from Save and open, where it is described as invented. |

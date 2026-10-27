@@ -67,9 +67,7 @@ function CoordinatorHome() {
           <p className="mt-1 text-sm text-ink-muted">
             {!isDemo
               ? "Signed in: your college's data is loaded from the server, and changes are saved there."
-              : dataset.id === "custom"
-                ? "Your college's data is saved in this browser. Keep a copy with Save and open."
-                : "You are looking at invented sample data. Start a blank college from Save and open to enter your own."}
+              : "Your college's data is saved in this browser. Keep a copy with Save and open."}
           </p>
         </div>
         <div className="flex gap-2">
@@ -120,7 +118,7 @@ function CoordinatorHome() {
           </Panel>
           {isDemo && <Panel title="Teacher view">
             <p className="text-sm text-ink-muted">
-              Use <strong>Demo view</strong> at the top to see the app as any teacher: their day, week and availability. In the full product each
+              Use the <strong>Role</strong> switch at the top to see the app as any teacher: their day, week and availability. In the full product each
               person signs in and sees only their own view.
             </p>
           </Panel>}

@@ -224,9 +224,9 @@ export default function LoginPage() {
             </Link>
           </p>
           <p>
-            Want to test without an account?{" "}
-            <Link href="/" className="font-semibold text-amber-700 hover:underline">
-              Use In-Browser Demo Mode
+            No account?{" "}
+            <Link href="/" className="font-semibold text-primary hover:underline">
+              Continue without signing in
             </Link>
           </p>
         </div>

@@ -62,7 +62,7 @@ export default function AccountPage() {
               href="/"
               className="inline-flex h-10 items-center justify-center rounded-lg border border-line bg-white px-4 text-sm font-medium text-ink hover:bg-surface"
             >
-              Continue in In-Browser Demo Mode
+              Continue without signing in
             </Link>
           </div>
         </div>

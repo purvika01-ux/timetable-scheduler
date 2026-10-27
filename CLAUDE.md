@@ -68,7 +68,7 @@ tests/                Node test runner tests (*.test.ts)
 6. **Validate every input with Zod** at the API boundary; never pass request values as query objects.
 7. **Concurrency:** timetable edits carry the draft revision and run in a transaction with the validator; master data carries `rowVersion`; mutating requests carry idempotency keys (`docs/DATABASE_DESIGN.md` section 6).
 8. **Security basics:** no access token or personal data in browser storage; secrets only in environment variables or the host's secret store; no personal data in logs; append-only audit events.
-9. **Honest UI.** No control that looks functional but does nothing. Sample data is labelled as sample data. Never describe the system as production-ready or secure for real data until `docs/PRODUCT_REQUIREMENTS.md` section 10 is verified and recorded.
+9. **Honest UI.** No control that looks functional but does nothing. Screens carry no demo or sample-data badges (M24); the sample college is described as invented where it is chosen. Never describe the system as production-ready or secure for real data until `docs/PRODUCT_REQUIREMENTS.md` section 10 is verified and recorded.
 10. **Accessibility:** keyboard-operable controls, visible focus, labelled grid cells, confirmations for destructive actions (safe choice first); WCAG 2.1 AA target.
 11. **English and Punjabi:** from Phase 6, every new user-facing string goes through the message catalogues; Punjabi drafts are marked unreviewed until U9.
 12. **No real personal data** before the legal review (S11). Use invented names and `example.edu` addresses.
