@@ -104,9 +104,9 @@ export function PrincipalDashboard() {
 
       {/* Compliance & Audit Banner */}
       {report?.valid && missing === 0 && (
-        <Banner tone="success" title="Schedule Certified Clash-Free by Independent Engine">
-          This timetable has passed independent verification against all Punjab academic constraints:
-          zero teacher double-booking, zero room conflicts, protected lunch breaks, and section capacity compliance.
+        <Banner tone="success" title="Clash-free and complete">
+          The validator found no teacher, room or section clashes, no class in a too-small or wrong-type room, no class in
+          a teacher's unavailable period, and every course has all its weekly sessions.
         </Banner>
       )}
 

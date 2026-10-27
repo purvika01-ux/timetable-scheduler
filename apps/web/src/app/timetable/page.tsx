@@ -131,10 +131,10 @@ function CollegeTimetable({
         onMove={
           isReadOnly
             ? undefined
-            : (entries, message) => {
-                const ok = saveTimetable(entries, "edited", timetable.seed);
-                if (ok) toast(message);
-                return ok;
+            : async (entries, message) => {
+                const saved = await saveTimetable(entries, "edited", timetable.seed);
+                if (saved.ok) toast(saved.savedToServer ? `${message} Saved on the server.` : message);
+                return saved;
               }
         }
       />

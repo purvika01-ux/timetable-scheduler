@@ -39,14 +39,24 @@ interface WorkspaceStore {
   updateDataset: (next: Dataset) => { ok: boolean; removed: number };
   saveEntity: (area: SetupArea, item: unknown, isNew: boolean) => Promise<{ ok: boolean; error?: string; removed?: number }>;
   deleteEntity: (area: SetupArea, id: string) => Promise<{ ok: boolean; error?: string; removed?: number }>;
-  setTeacherUnavailable: (teacherId: string, slots: SlotKey[]) => Promise<boolean>;
-  saveTimetable: (entries: ScheduledEntry[], source: TimetableSource, seed: number | null) => boolean;
-  clearTimetable: () => boolean;
+  /** Signed in: the server saves first and its refusal is returned; nothing changes locally then. */
+  setTeacherUnavailable: (teacherId: string, slots: SlotKey[]) => Promise<SaveResult>;
+  saveTimetable: (entries: ScheduledEntry[], source: TimetableSource, seed: number | null) => Promise<SaveResult>;
+  clearTimetable: () => Promise<SaveResult>;
   /** Replace everything (sample college, blank college, imported file). */
   replaceWorkspace: (workspace: Workspace) => boolean;
   /** Problems found while loading stored data, shown once as a banner. */
   notices: string[];
   dismissNotices: () => void;
+}
+
+/** `savedToServer` is true only when the API confirmed the save (signed in); the demo saves in this browser. */
+export type SaveResult = { ok: true; savedToServer: boolean } | { ok: false; error: string };
+
+const BROWSER_BLOCKED = "This browser blocked saving (storage may be full or disabled). Nothing was changed.";
+
+function serverRefusal(err: unknown, fallback: string): string {
+  return err instanceof Error && err.message ? err.message : fallback;
 }
 
 const WorkspaceContext = createContext<WorkspaceStore | null>(null);
@@ -343,7 +353,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
   );
 
   const setTeacherUnavailable = useCallback(
-    async (teacherId: string, slots: SlotKey[]): Promise<boolean> => {
+    async (teacherId: string, slots: SlotKey[]): Promise<SaveResult> => {
       if (activeCollege) {
         try {
           await api.request(`/colleges/${activeCollege.collegeId}/academic/availability/${teacherId}`, {
@@ -351,45 +361,49 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
             body: { slots },
           });
         } catch (err) {
-          console.error("Failed to save teacher availability to server:", err);
+          return { ok: false, error: serverRefusal(err, "The server did not save this availability. Nothing was changed.") };
         }
       }
       const availability = { ...workspace.dataset.availability };
       if (slots.length > 0) availability[teacherId] = [...slots];
       else delete availability[teacherId];
-      return persist({ ...workspace, dataset: { ...workspace.dataset, availability } });
+      if (!persist({ ...workspace, dataset: { ...workspace.dataset, availability } })) return { ok: false, error: BROWSER_BLOCKED };
+      return { ok: true, savedToServer: !!activeCollege };
     },
     [activeCollege, api, persist, workspace],
   );
 
   const saveTimetable = useCallback(
-    (entries: ScheduledEntry[], source: TimetableSource, seed: number | null) => {
+    async (entries: ScheduledEntry[], source: TimetableSource, seed: number | null): Promise<SaveResult> => {
+      let updatedAt = new Date().toISOString();
       if (activeCollege) {
-        api
-          .request(`/colleges/${activeCollege.collegeId}/academic/timetable`, {
+        // The server revalidates the whole timetable and refuses any clash (422); only then is it shown here.
+        try {
+          const saved = await api.request<{ updatedAt: string }>(`/colleges/${activeCollege.collegeId}/academic/timetable`, {
             method: "POST",
             body: { entries, source, seed },
-          })
-          .catch((err) => {
-            console.error("Failed to save timetable to server:", err);
           });
+          updatedAt = saved.updatedAt ?? updatedAt;
+        } catch (err) {
+          return { ok: false, error: serverRefusal(err, "The server did not save this timetable. The current timetable was not changed.") };
+        }
       }
-      return persist({ ...workspace, timetable: { source, seed, updatedAt: new Date().toISOString(), entries } });
+      if (!persist({ ...workspace, timetable: { source, seed, updatedAt, entries } })) return { ok: false, error: BROWSER_BLOCKED };
+      return { ok: true, savedToServer: !!activeCollege };
     },
     [activeCollege, api, persist, workspace],
   );
 
-  const clearTimetable = useCallback(() => {
+  const clearTimetable = useCallback(async (): Promise<SaveResult> => {
     if (activeCollege) {
-      api
-        .request(`/colleges/${activeCollege.collegeId}/academic/timetable`, {
-          method: "DELETE",
-        })
-        .catch((err) => {
-          console.error("Failed to clear timetable on server:", err);
-        });
+      try {
+        await api.request(`/colleges/${activeCollege.collegeId}/academic/timetable`, { method: "DELETE" });
+      } catch (err) {
+        return { ok: false, error: serverRefusal(err, "The server did not clear the timetable. Nothing was changed.") };
+      }
     }
-    return persist({ ...workspace, timetable: null });
+    if (!persist({ ...workspace, timetable: null })) return { ok: false, error: BROWSER_BLOCKED };
+    return { ok: true, savedToServer: !!activeCollege };
   }, [activeCollege, api, persist, workspace]);
 
   const replaceWorkspace = useCallback(

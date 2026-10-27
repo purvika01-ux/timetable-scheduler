@@ -84,9 +84,9 @@ export function AvailabilityEditor({ teacher, own }: { teacher: Teacher; own: bo
     setError(null);
     try {
       const ordered = grid.days.flatMap((d) => Array.from({ length: d.periodCount }, (_, i) => slotKey(d.id, i + 1)).filter((k) => draft.has(k)));
-      const ok = await setTeacherUnavailable(teacher.id, ordered);
-      if (!ok) {
-        setError("This browser blocked saving (storage may be full or disabled). The changes were not saved.");
+      const saved = await setTeacherUnavailable(teacher.id, ordered);
+      if (!saved.ok) {
+        setError(saved.error);
         return;
       }
       toast(`Availability saved for ${teacher.name}: ${availableCount} of ${totalPeriods} periods available.`);

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { SaveResult } from "@/lib/store";
 
 import { entryTimes, formatRange, PERIOD_MINUTES, periodLabel, validStarts } from "@/lib/timetable/grid";
 import type { Lookup } from "@/lib/timetable/lookup";
@@ -29,7 +30,7 @@ export function ClassDialog({
   availability: AvailabilityMap;
   onClose: () => void;
   /** When given, the dialog offers a validated "Move class" form. */
-  onMove?: (entries: ScheduledEntry[], message: string) => boolean;
+  onMove?: (entries: ScheduledEntry[], message: string) => Promise<SaveResult>;
 }) {
   return (
     <Modal
@@ -82,7 +83,7 @@ function ClassDialogBody({
   entries: ScheduledEntry[];
   availability: AvailabilityMap;
   onClose: () => void;
-  onMove?: (entries: ScheduledEntry[], message: string) => boolean;
+  onMove?: (entries: ScheduledEntry[], message: string) => Promise<SaveResult>;
 }) {
   const grid = dataset.grid;
   const day = grid.days.find((d) => d.id === entry.day);
@@ -154,7 +155,7 @@ function MoveForm({
   entries: ScheduledEntry[];
   availability: AvailabilityMap;
   onClose: () => void;
-  onMove: (entries: ScheduledEntry[], message: string) => boolean;
+  onMove: (entries: ScheduledEntry[], message: string) => Promise<SaveResult>;
 }) {
   const grid = dataset.grid;
   const [open, setOpen] = useState(false);
@@ -162,6 +163,7 @@ function MoveForm({
   const [start, setStart] = useState(entry.startPeriod);
   const [roomId, setRoomId] = useState(entry.roomId);
   const [issues, setIssues] = useState<ValidationIssue[] | null>(null);
+  const [saving, setSaving] = useState(false);
   const issuesRef = useRef<HTMLDivElement>(null);
 
   // Bring the rejection reasons into view inside the scrolling dialog.
@@ -185,8 +187,9 @@ function MoveForm({
     setIssues(null);
   };
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (saving) return;
     if (day === entry.day && start === entry.startPeriod && roomId === entry.roomId) {
       setIssues([{ kind: "grid", entryIds: [entry.id], message: "Choose a different day, period or room first." }]);
       return;
@@ -198,8 +201,11 @@ function MoveForm({
     }
     const dayLabel = grid.days.find((d) => d.id === day)?.label;
     const message = `${lookup.subject(entry.subjectId)?.code} moved to ${dayLabel}, ${periodLabel(start, entry.span).toLowerCase()}, ${lookup.room(roomId)?.name}. Whole timetable revalidated: no clashes.`;
-    if (onMove(result.entries, message)) onClose();
-    else setIssues([{ kind: "reference", entryIds: [entry.id], message: "This browser blocked saving. Your timetable was not changed." }]);
+    setSaving(true);
+    const saved = await onMove(result.entries, message);
+    setSaving(false);
+    if (saved.ok) onClose();
+    else setIssues([{ kind: "reference", entryIds: [entry.id], message: saved.error }]);
   };
 
   if (!open) {
@@ -316,8 +322,8 @@ function MoveForm({
 
       <div className="mt-4 flex flex-wrap justify-end gap-2">
         <Button onClick={() => setOpen(false)}>Cancel</Button>
-        <Button type="submit" variant="primary" icon="checkCircle">
-          Check and move
+        <Button type="submit" variant="primary" icon="checkCircle" disabled={saving}>
+          {saving ? "Saving…" : "Check and move"}
         </Button>
       </div>
     </form>

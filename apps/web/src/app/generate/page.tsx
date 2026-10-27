@@ -46,6 +46,7 @@ export default function GeneratePage() {
   const [failure, setFailure] = useState<string | null>(null);
   const [confirmApply, setConfirmApply] = useState(false);
   const [applied, setApplied] = useState(false);
+  const [appliedOnServer, setAppliedOnServer] = useState(false);
 
   // Selection states
   const [selectedSectionId, setSelectedSectionId] = useState<string>("all");
@@ -118,8 +119,8 @@ export default function GeneratePage() {
             },
           );
           serverReport = valRes;
-        } catch (valErr) {
-          console.warn("Server validation network issue:", valErr);
+        } catch {
+          // Shown as "not checked on the server"; the server checks the save again anyway.
         }
       }
 
@@ -131,14 +132,16 @@ export default function GeneratePage() {
     }
   };
 
-  const apply = () => {
+  const apply = async () => {
     setConfirmApply(false);
     if (!run) return;
-    if (saveTimetable(run.result.entries, "generated", run.result.seed)) {
+    const saved = await saveTimetable(run.result.entries, "generated", run.result.seed);
+    if (saved.ok) {
       setApplied(true);
-      toast("Timetable saved and synced with server. All college views updated.");
+      setAppliedOnServer(saved.savedToServer);
+      toast(saved.savedToServer ? "Timetable saved on the server. All college views updated." : "Timetable saved in this browser. All views updated.");
     } else {
-      setFailure("This browser blocked saving. The current timetable was not changed.");
+      setFailure(saved.error);
     }
   };
 
@@ -149,9 +152,13 @@ export default function GeneratePage() {
   const clashTotal = report ? report.counts.teacher + report.counts.room + report.counts.section : 0;
   const otherViolations = report ? report.issues.length - clashTotal : 0;
 
-  // Crucial: Timetable is only valid if both client AND server validation agree it is clash-free!
-  const isServerValid = !serverReport || serverReport.valid;
+  // Signed in, a run counts as clash-free only when the server's validator checked it and agreed.
+  const serverChecked = !!serverReport;
+  const isServerValid = activeCollege ? serverChecked && serverReport.valid : true;
   const isOverallValid = !!report?.valid && isServerValid;
+  // Completeness comes from the validator, and covers only the courses selected for this run.
+  const isComplete = !!report?.complete;
+  const scopeNote = scopedDataset.requirements.length < dataset.requirements.length ? " in the selected scope" : "";
   const canApply = !!run && isOverallValid && !stale;
 
   return (
@@ -365,7 +372,11 @@ export default function GeneratePage() {
               </Banner>
             )}
 
-            {!isOverallValid ? (
+            {activeCollege && !serverChecked && report.valid ? (
+              <Banner tone="error" title="Not checked on the server">
+                The server could not check this result, so it cannot be applied. Check your connection and generate again.
+              </Banner>
+            ) : !isOverallValid ? (
               <Banner tone="error" title={`Validation failed: ${report.issues.length} clashes or rule violations found`}>
                 This schedule has conflicts and cannot be applied. Problem classes are outlined below:
                 <ul className="mt-2 list-disc pl-4">
@@ -377,13 +388,15 @@ export default function GeneratePage() {
                   )}
                 </ul>
               </Banner>
-            ) : unplaced.length === 0 ? (
-              <Banner tone="success" title={`Clash-free timetable verified: All ${placed} sessions placed`}>
-                Both client and server validators confirmed 0 teacher, 0 room, and 0 section clashes. All teacher availability, room capacity, lab blocks, and daily limits are strictly honored. Seed {run.result.seed}.
+            ) : isComplete ? (
+              <Banner tone="success" title={`Clash-free and complete${scopeNote}: all ${placed} sessions placed`}>
+                {serverChecked ? "This browser and the server each checked it" : "Checked in this browser"}: no teacher, room or section clashes,
+                and every course{scopeNote} has all its weekly sessions. Seed {run.result.seed}.
               </Banner>
             ) : (
-              <Banner tone="warning" title={`Clash-free schedule, but ${unplaced.length} ${unplaced.length === 1 ? "session" : "sessions"} could not be placed`}>
-                All placed classes are 100% clash-free. The unplaced sessions below require adjusting room capacity, teacher availability, or section constraints. Seed {run.result.seed}.
+              <Banner tone="warning" title={`Clash-free, but ${unplaced.length} ${unplaced.length === 1 ? "session" : "sessions"} could not be placed`}>
+                No placed class breaks a rule{serverChecked ? " (checked in this browser and on the server)" : ""}. The missing sessions are
+                listed below, each with its reasons. Seed {run.result.seed}.
               </Banner>
             )}
 
@@ -399,23 +412,26 @@ export default function GeneratePage() {
             {/* Validation & Save Action Bar */}
             <div className="flex flex-wrap items-center gap-3 rounded-lg border border-line bg-white px-4 py-3 shadow-sm">
               <div className="mr-auto flex flex-wrap items-center gap-2 text-sm">
-                <Stamp tone={isOverallValid ? "success" : "danger"}>
-                  {isOverallValid ? "Client Validated" : "Client Invalid"}
+                <Stamp tone={report.valid ? "success" : "danger"}>
+                  {report.valid ? "Checked in this browser" : "Fails the check in this browser"}
                 </Stamp>
                 {serverReport && (
                   <Stamp tone={serverReport.valid ? "success" : "danger"}>
-                    {serverReport.valid ? "Server Validated (Independent)" : "Server Rejection"}
+                    {serverReport.valid ? "Checked on the server" : "Refused by the server"}
                   </Stamp>
                 )}
-                {isOverallValid && unplaced.length > 0 && <Stamp tone="warning">Incomplete ({unplaced.length} missing)</Stamp>}
+                {activeCollege && !serverChecked && <Stamp tone="danger">Not checked on the server</Stamp>}
+                {isOverallValid && !isComplete && <Stamp tone="warning">Incomplete ({unplaced.length} missing)</Stamp>}
                 <span className="text-xs text-ink-muted sm:text-sm">
                   {applied
-                    ? "Saved to MongoDB and active for college."
+                    ? appliedOnServer
+                      ? "Saved on the server and active for the college."
+                      : "Saved in this browser."
                     : stale
                       ? "Generate again to use latest data."
                       : !isOverallValid
                         ? "Only validated clash-free timetables can be applied."
-                        : unplaced.length > 0
+                        : !isComplete
                           ? `Use this schedule anyway? (${unplaced.length} sessions will remain unassigned).`
                           : "Ready to set as the active college timetable."}
                 </span>
@@ -483,8 +499,8 @@ export default function GeneratePage() {
 
       <ConfirmDialog
         open={confirmApply}
-        title={unplaced.length > 0 ? "Save incomplete timetable to database?" : "Save generated timetable to database?"}
-        confirmLabel={unplaced.length > 0 ? "Use incomplete timetable" : "Use this timetable"}
+        title={!report?.complete ? "Use an incomplete timetable?" : "Use this generated timetable?"}
+        confirmLabel={!report?.complete ? "Use incomplete timetable" : "Use this timetable"}
         onCancel={() => setConfirmApply(false)}
         onConfirm={apply}
       >
@@ -502,7 +518,9 @@ export default function GeneratePage() {
             </ul>
           </div>
         )}
-        The active college timetable in MongoDB will be updated with this generated schedule (seed {run?.result.seed}). All college members (Teachers, Students, Principal, HODs) will immediately see this updated routine.
+        {activeCollege
+          ? `This replaces the college's saved timetable on the server (seed ${run?.result.seed}). The server checks it again first and refuses any clash. Everyone in the college sees the new timetable when they next load it.`
+          : `This replaces the timetable saved in this browser (seed ${run?.result.seed}).`}
       </ConfirmDialog>
     </div>
   );

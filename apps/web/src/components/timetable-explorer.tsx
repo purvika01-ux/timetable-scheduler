@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import type { SaveResult } from "@/lib/store";
 
 import { makeLookup } from "@/lib/timetable/lookup";
 import type { AvailabilityMap, Dataset, ScheduledEntry } from "@/lib/timetable/types";
@@ -31,7 +32,7 @@ export function TimetableExplorer({
   availability: AvailabilityMap;
   flaggedIds?: Set<string>;
   /** When given, coordinators can move classes from the details dialog. */
-  onMove?: (entries: ScheduledEntry[], message: string) => boolean;
+  onMove?: (entries: ScheduledEntry[], message: string) => Promise<SaveResult>;
   heading: string;
 }) {
   const lookup = useMemo(() => makeLookup(dataset), [dataset]);

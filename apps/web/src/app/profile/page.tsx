@@ -6,11 +6,13 @@ import { RoleNotice } from "@/components/app-shell";
 import { Icon } from "@/components/icons";
 import { SUBJECT_STYLE } from "@/components/subject-style";
 import { cx, PageHeader, PageSkeleton, Panel, Stamp } from "@/components/ui";
+import { useAuth } from "@/lib/auth-context";
 import { useWorkspace } from "@/lib/store";
 import { weeklyLoad } from "@/lib/timetable/queries";
 
 export default function ProfilePage() {
   const { ready, dataset, viewTeacher: teacher, timetable } = useWorkspace();
+  const { activeCollege } = useAuth();
   const mine = useMemo(() => (timetable?.entries ?? []).filter((e) => e.teacherId === teacher?.id), [timetable, teacher]);
   const assignments = useMemo(() => dataset.requirements.filter((r) => r.teacherId === teacher?.id), [dataset, teacher]);
 
@@ -107,14 +109,23 @@ export default function ProfilePage() {
 
           <Panel title="About this prototype">
             <ul className="space-y-2 text-sm text-ink-muted">
-              <li className="flex gap-2">
-                <Icon name="info" className="mt-0.5 h-4 w-4 shrink-0" />
-                There is no sign-in yet: the Demo view switch at the top shows the app as any teacher or as the coordinator.
-              </li>
-              <li className="flex gap-2">
-                <Icon name="info" className="mt-0.5 h-4 w-4 shrink-0" />
-                Everything is stored only in this browser (localStorage). Nothing is sent to a server or shared with other users.
-              </li>
+              {activeCollege ? (
+                <li className="flex gap-2">
+                  <Icon name="info" className="mt-0.5 h-4 w-4 shrink-0" />
+                  You are signed in to {activeCollege.collegeName}: changes are saved on the server, and nothing about the college is kept in this browser.
+                </li>
+              ) : (
+                <>
+                  <li className="flex gap-2">
+                    <Icon name="info" className="mt-0.5 h-4 w-4 shrink-0" />
+                    This is the demo: the Demo view switch at the top shows the app as any teacher or as the coordinator.
+                  </li>
+                  <li className="flex gap-2">
+                    <Icon name="info" className="mt-0.5 h-4 w-4 shrink-0" />
+                    The demo is stored only in this browser (localStorage). Nothing is sent to a server or shared with other users.
+                  </li>
+                </>
+              )}
             </ul>
           </Panel>
         </div>

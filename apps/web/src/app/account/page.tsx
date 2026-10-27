@@ -342,10 +342,10 @@ export default function AccountPage() {
 
       {/* Security & Token Scope */}
       <section className="rounded-xl border border-line bg-white p-6 shadow-sm text-xs text-ink-muted space-y-2">
-        <h3 className="font-semibold text-ink text-sm">Security & Multi-Tenant Isolation Guarantee</h3>
+        <h3 className="font-semibold text-ink text-sm">How your sign-in is handled</h3>
         <p>• Access tokens are held exclusively in JavaScript memory and are never persisted in localStorage or cookies.</p>
         <p>• Session refresh tokens are stored in HttpOnly, SameSite=Strict cookies with automatic rotation and token-reuse revocation.</p>
-        <p>• All college database queries are isolated at the server level; cross-tenant requests are refused with 404.</p>
+        <p>• Each college's records are scoped on the server; a request for another college's records is refused. This is a prototype: it has not been security-reviewed for real data.</p>
       </section>
     </div>
   );
