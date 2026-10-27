@@ -101,13 +101,14 @@ export function createAuthenticator(deps: Deps, cacheMs = 60_000) {
 
 /**
  * Cookie-authenticated endpoints only. A custom header forces browsers to send a CORS preflight,
- * which other origins fail; an Origin, when present, must be one of the configured origins.
+ * which other origins fail, and the Origin must be one of the configured origins
+ * (SECURITY_MODEL.md section 6).
  */
 export function requireCsrf(allowedOrigins: string[]): RequestHandler {
   const allowed = new Set(allowedOrigins);
   return (req, _res, next) => {
     const origin = req.get("origin");
-    if (req.get("x-csrf-protection") !== "1" || (origin !== undefined && !allowed.has(origin))) {
+    if (req.get("x-csrf-protection") !== "1" || origin === undefined || !allowed.has(origin)) {
       return next(new ApiError(403, "forbidden", "This request was refused because it did not come from the app."));
     }
     next();

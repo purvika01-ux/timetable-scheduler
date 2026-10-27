@@ -15,18 +15,26 @@ export const securityHeaders: RequestHandler = helmet({
 
 /**
  * CORS for an explicit list of exact origins. Requests from other origins get no CORS headers, so
- * browsers refuse to share the response. Credentials are not allowed until sign-in exists (Phase 5).
+ * browsers refuse to share the response. Credentials (the refresh cookie) are allowed only under the
+ * cookie's path, so every other route stays bearer-only (SECURITY_MODEL.md section 6).
  */
-export function corsPolicy(allowedOrigins: string[]): RequestHandler {
+export function corsPolicy(allowedOrigins: string[], credentialsPath: string): RequestHandler {
   const allowed = new Set(allowedOrigins);
-  return cors({
-    origin: (origin, callback) => callback(null, origin !== undefined && allowed.has(origin)),
+  const base = {
     methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE"],
-    allowedHeaders: ["Content-Type", "Authorization", "Idempotency-Key", "X-Request-Id", "If-None-Match"],
+    allowedHeaders: ["Content-Type", "Authorization", "Idempotency-Key", "X-Request-Id", "If-None-Match", "X-CSRF-Protection"],
     exposedHeaders: ["X-Request-Id", "ETag", "Retry-After"],
-    credentials: false,
     maxAge: 600,
     optionsSuccessStatus: 204,
+  };
+  return cors((req, callback) => {
+    const origin = req.headers.origin;
+    const path = (req as { path?: string }).path ?? "";
+    callback(null, {
+      ...base,
+      origin: origin !== undefined && allowed.has(origin),
+      credentials: path === credentialsPath || path.startsWith(`${credentialsPath}/`),
+    });
   });
 }
 

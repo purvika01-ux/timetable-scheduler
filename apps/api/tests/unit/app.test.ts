@@ -228,6 +228,22 @@ describe("CORS and security headers", () => {
     assert.match(res.headers.get("access-control-expose-headers") ?? "", /X-Request-Id/);
   });
 
+  it("allows credentials and the CSRF header only on the refresh cookie's path", async () => {
+    const pre = await fetch(`${url}/api/v1/auth/refresh`, {
+      method: "OPTIONS",
+      headers: { origin: ALLOWED_ORIGIN, "access-control-request-method": "POST", "access-control-request-headers": "x-csrf-protection" },
+    });
+    assert.equal(pre.status, 204);
+    assert.equal(pre.headers.get("access-control-allow-origin"), ALLOWED_ORIGIN);
+    assert.equal(pre.headers.get("access-control-allow-credentials"), "true");
+    assert.match(pre.headers.get("access-control-allow-headers") ?? "", /X-CSRF-Protection/);
+
+    const other = await fetch(`${url}/api/v1/health/live`, { headers: { origin: ALLOWED_ORIGIN } });
+    assert.equal(other.headers.get("access-control-allow-credentials"), null);
+    const lookalike = await fetch(`${url}/api/v1/authx`, { method: "OPTIONS", headers: { origin: ALLOWED_ORIGIN, "access-control-request-method": "GET" } });
+    assert.equal(lookalike.headers.get("access-control-allow-credentials"), null);
+  });
+
   it("gives other origins no CORS headers", async () => {
     const res = await fetch(`${url}/api/v1/health/live`, { headers: { origin: "https://evil.example.com" } });
     assert.equal(res.headers.get("access-control-allow-origin"), null);

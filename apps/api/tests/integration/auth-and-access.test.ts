@@ -304,6 +304,10 @@ describe("Authentication, Lockout, and Token Security", () => {
       },
     });
     assert.equal(badOrigin.status, 403);
+
+    // No Origin at all
+    const noOrigin = await call(`${base}/auth/refresh`, { method: "POST", headers: { "x-csrf-protection": "1" } });
+    assert.equal(noOrigin.status, 403);
   });
 
   it("revokes all sessions on logout-all", async () => {

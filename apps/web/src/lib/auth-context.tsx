@@ -56,7 +56,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     () =>
       createApiClient({
         baseUrl,
-        credentials: "include", // send HttpOnly cookies for refresh & logout
+        // Cookies only go with the calls under /auth that set or use the refresh cookie (below);
+        // every other API call is bearer-only, and the API refuses credentials there (CORS).
         getToken: () => token,
       }),
     [baseUrl, token],
@@ -91,6 +92,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const data = await api.request<{ accessToken: string }>("/auth/refresh", {
         method: "POST",
+        credentials: "include",
         csrfProtection: true,
       });
       if (data.accessToken) {
@@ -122,6 +124,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user?: AuthUser;
       }>("/auth/login", {
         method: "POST",
+        credentials: "include",
         body: { identifier, password },
       });
 
@@ -144,6 +147,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     async (challengeToken: string, code: string): Promise<{ user?: AuthUser; memberships?: AuthMembership[] }> => {
       const res = await api.request<{ accessToken: string }>("/auth/mfa/verify", {
         method: "POST",
+        credentials: "include",
         body: { challengeToken, code },
       });
       if (res.accessToken) {
@@ -160,6 +164,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       await api.request("/auth/logout", {
         method: "POST",
+        credentials: "include",
         csrfProtection: true,
       });
     } catch {
@@ -177,6 +182,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (token) {
         await api.request("/auth/logout-all", {
           method: "POST",
+          credentials: "include",
           token,
         });
       }

@@ -11,6 +11,7 @@ import { requestId } from "./middleware/request-id.ts";
 import { requestLogger } from "./middleware/request-logger.ts";
 import { corsPolicy, requireJsonBody, securityHeaders } from "./middleware/security.ts";
 import type { ApiModule } from "./routes/module.ts";
+import { REFRESH_COOKIE_PATH } from "./services/session.service.ts";
 
 export const API_PREFIX = "/api/v1";
 export const JSON_BODY_LIMIT = "1mb";
@@ -31,7 +32,7 @@ export function createApp({ config, logger, modules }: AppDeps): Express {
   app.use(requestId);
   app.use(requestLogger(logger));
   app.use(securityHeaders);
-  app.use(corsPolicy(config.corsOrigins));
+  app.use(corsPolicy(config.corsOrigins, REFRESH_COOKIE_PATH));
   app.use(requireJsonBody);
   app.use(express.json({ limit: JSON_BODY_LIMIT, strict: true }));
 
