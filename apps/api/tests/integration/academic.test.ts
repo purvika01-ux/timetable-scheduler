@@ -351,6 +351,28 @@ describe("Academic Data Management Module", () => {
       assert.equal(reqRes.body.data.sessionsPerWeek, 5);
     });
 
+    it("updates codes and names, and refuses one already in use with 409", async () => {
+      // Each PATCH runs the duplicate check on the identifying field.
+      const unique: Array<[string, string, Record<string, string>]> = [
+        ["departments", newDeptId, { code: "ECE" }],
+        ["teachers", newTeacherId, { employeeId: "EMP-ECE-01" }],
+        ["subjects", newSubjectId, { code: "EC301" }],
+        ["sections", newSectionId, { name: "ECE-5A" }],
+        ["rooms", newRoomId, { name: "DSP Lab (ECE)" }],
+      ];
+      for (const [area, id, body] of unique) {
+        const res = await call(`${base}/colleges/${collegeAId}/academic/${area}/${id}`, jsonPatch(body, authHeaders(tcToken)));
+        assert.equal(res.status, 200, `${area} PATCH ${JSON.stringify(body)}`);
+      }
+
+      const dup = await call<{ error: { code: string } }>(
+        `${base}/colleges/${collegeAId}/academic/departments/${newDeptId}`,
+        jsonPatch({ code: "CSE" }, authHeaders(tcToken)),
+      );
+      assert.equal(dup.status, 409);
+      assert.equal(dup.body.error.code, "duplicate");
+    });
+
     it("manages teacher unavailable slots", async () => {
       const res = await call<{ data: { teacherId: string; slots: string[] } }>(
         `${base}/colleges/${collegeAId}/academic/availability/${newTeacherId}`,

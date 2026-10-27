@@ -1,4 +1,4 @@
-import { Types } from "mongoose";
+import { trusted, Types } from "mongoose";
 
 import type { Deps } from "../deps.ts";
 import { ApiError } from "../http/errors.ts";
@@ -125,7 +125,7 @@ export function createAcademicService(deps: Deps) {
     const set: Record<string, unknown> = {};
     if (input.code) {
       const code = input.code.trim().toUpperCase();
-      const duplicate = await models.Department.findOne({ code, _id: { $ne: id } });
+      const duplicate = await models.Department.findOne({ code, _id: trusted({ $ne: id }) });
       if (duplicate) throw new ApiError(409, "duplicate", `Department with code ${code} already exists.`);
       set.code = code;
     }
@@ -216,7 +216,7 @@ export function createAcademicService(deps: Deps) {
     if (input.departmentId) set.departmentId = input.departmentId.trim();
     if (input.employeeId) {
       const emp = input.employeeId.trim().toUpperCase();
-      const dup = await models.Teacher.findOne({ employeeId: emp, _id: { $ne: id } });
+      const dup = await models.Teacher.findOne({ employeeId: emp, _id: trusted({ $ne: id }) });
       if (dup) throw new ApiError(409, "duplicate", `Teacher with Employee ID ${emp} already exists.`);
       set.employeeId = emp;
     }
@@ -304,7 +304,7 @@ export function createAcademicService(deps: Deps) {
     const set: Record<string, unknown> = {};
     if (input.code) {
       const code = input.code.trim().toUpperCase();
-      const dup = await models.Subject.findOne({ code, _id: { $ne: id } });
+      const dup = await models.Subject.findOne({ code, _id: trusted({ $ne: id }) });
       if (dup) throw new ApiError(409, "duplicate", `Subject with code ${code} already exists.`);
       set.code = code;
     }
@@ -392,7 +392,7 @@ export function createAcademicService(deps: Deps) {
     const set: Record<string, unknown> = {};
     if (input.name) {
       const name = input.name.trim();
-      const dup = await models.Section.findOne({ name, _id: { $ne: id } });
+      const dup = await models.Section.findOne({ name, _id: trusted({ $ne: id }) });
       if (dup) throw new ApiError(409, "duplicate", `Section ${name} already exists.`);
       set.name = name;
     }
@@ -480,7 +480,7 @@ export function createAcademicService(deps: Deps) {
     const set: Record<string, unknown> = {};
     if (input.name) {
       const name = input.name.trim();
-      const dup = await models.Room.findOne({ name, _id: { $ne: id } });
+      const dup = await models.Room.findOne({ name, _id: trusted({ $ne: id }) });
       if (dup) throw new ApiError(409, "duplicate", `Room ${name} already exists.`);
       set.name = name;
     }
