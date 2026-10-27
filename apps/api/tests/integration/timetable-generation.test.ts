@@ -258,6 +258,37 @@ describe("Core Timetable Generation and Independent Server Validation", () => {
     assert.equal(fetched.entries.length, result.entries.length);
   });
 
+  it("refuses to save a timetable with a clash and keeps the saved one", async () => {
+    const before = await call<{ data: { entries: unknown[]; seed: number } | null }>(
+      `${base}/colleges/${collegeAId}/academic/timetable`,
+      { headers: authHeaders(tcTokenA) },
+    );
+
+    const genRes = await call<{ data: { result: { entries: Array<{ id: string; teacherId: string; day: string; startPeriod: number; span: number }> } } }>(
+      `${base}/colleges/${collegeAId}/academic/timetable/generate`,
+      jsonPost({ seed: 3 }, authHeaders(tcTokenA)),
+    );
+    const tampered = structuredClone(genRes.body.data.result.entries);
+    const victim = tampered.find((e) => e.teacherId !== tampered[0]!.teacherId)!;
+    victim.teacherId = tampered[0]!.teacherId;
+    victim.day = tampered[0]!.day;
+    victim.startPeriod = tampered[0]!.startPeriod;
+    victim.span = tampered[0]!.span;
+
+    const saveRes = await call<{ error: { code: string; issues: Array<{ kind: string; entryIds: string[] }> } }>(
+      `${base}/colleges/${collegeAId}/academic/timetable`,
+      jsonPost({ entries: tampered, source: "edited", seed: null }, authHeaders(tcTokenA)),
+    );
+    assert.equal(saveRes.status, 422);
+    assert.equal(saveRes.body.error.code, "rule_violation");
+    assert.ok(saveRes.body.error.issues.some((i) => i.kind === "teacher" && i.entryIds.includes(victim.id)));
+
+    const after = await call<{ data: unknown }>(`${base}/colleges/${collegeAId}/academic/timetable`, {
+      headers: authHeaders(tcTokenA),
+    });
+    assert.deepEqual(after.body.data, before.body.data, "the saved timetable must be unchanged");
+  });
+
   it("respects teacher availability and avoids scheduling on blocked slots", async () => {
     const datasetRes = await call<{ data: { teachers: Array<{ id: string }> } }>(
       `${base}/colleges/${collegeAId}/academic`,

@@ -1,10 +1,10 @@
 // The two response shapes every endpoint uses (API_DESIGN.md sections 1 and 2):
 //   success: { "data": ..., "meta": { "requestId": "..." } }
-//   error:   { "error": { "code", "message", "fields"?, "requestId" } }
+//   error:   { "error": { "code", "message", "fields"?, "issues"?, "requestId" } }
 
 import type { Response } from "express";
 
-import type { ErrorCode, FieldError } from "./errors.ts";
+import type { ErrorCode, FieldError, RuleIssue } from "./errors.ts";
 
 export interface SuccessBody<T> {
   data: T;
@@ -12,7 +12,7 @@ export interface SuccessBody<T> {
 }
 
 export interface ErrorBody {
-  error: { code: ErrorCode; message: string; fields?: FieldError[]; requestId: string };
+  error: { code: ErrorCode; message: string; fields?: FieldError[]; issues?: RuleIssue[]; requestId: string };
 }
 
 export function requestIdOf(res: Response): string {
@@ -24,7 +24,22 @@ export function sendData<T>(res: Response, data: T, status = 200): void {
   res.status(status).json(body);
 }
 
-export function sendError(res: Response, status: number, code: ErrorCode, message: string, fields?: FieldError[]): void {
-  const body: ErrorBody = { error: { code, message, ...(fields && fields.length > 0 ? { fields } : {}), requestId: requestIdOf(res) } };
+export function sendError(
+  res: Response,
+  status: number,
+  code: ErrorCode,
+  message: string,
+  fields?: FieldError[],
+  issues?: RuleIssue[],
+): void {
+  const body: ErrorBody = {
+    error: {
+      code,
+      message,
+      ...(fields && fields.length > 0 ? { fields } : {}),
+      ...(issues && issues.length > 0 ? { issues } : {}),
+      requestId: requestIdOf(res),
+    },
+  };
   res.status(status).json(body);
 }

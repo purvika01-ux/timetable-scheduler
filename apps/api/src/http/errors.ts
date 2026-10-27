@@ -26,17 +26,26 @@ export interface FieldError {
   message: string;
 }
 
+/** A broken scheduling rule, returned with `rule_violation` (API_DESIGN.md section 2). */
+export interface RuleIssue {
+  kind: string;
+  message: string;
+  entryIds: string[];
+}
+
 export class ApiError extends Error {
   readonly status: number;
   readonly code: ErrorCode;
   readonly fields?: FieldError[];
+  readonly issues?: RuleIssue[];
 
-  constructor(status: number, code: ErrorCode, message: string, fields?: FieldError[]) {
+  constructor(status: number, code: ErrorCode, message: string, fields?: FieldError[], issues?: RuleIssue[]) {
     super(message);
     this.name = "ApiError";
     this.status = status;
     this.code = code;
     this.fields = fields;
+    this.issues = issues;
   }
 }
 

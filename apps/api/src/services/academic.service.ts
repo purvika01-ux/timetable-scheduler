@@ -673,6 +673,17 @@ export function createAcademicService(deps: Deps) {
   ) {
     const dataset = await getDataset(collegeId);
     const report = validateTimetable(dataset, data.entries, dataset.availability);
+    // Rule 1: a timetable that breaks a hard constraint is never stored. Incomplete is allowed (Q4):
+    // missing sessions are reported in the validation report.
+    if (!report.valid) {
+      throw new ApiError(
+        422,
+        "rule_violation",
+        `This timetable breaks ${report.issues.length === 1 ? "1 scheduling rule" : `${report.issues.length} scheduling rules`}, so it was not saved.`,
+        undefined,
+        report.issues,
+      );
+    }
 
     const doc = await models.Timetable.findOneAndUpdate(
       { collegeId },

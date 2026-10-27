@@ -39,7 +39,7 @@ export function errorHandler(logger: Logger): ErrorRequestHandler {
     if (known) {
       if (known.status >= 500) logger.warn({ requestId: res.locals.requestId, code: known.code, err }, "request failed");
       if (known.status === 503) res.setHeader("Retry-After", "5");
-      sendError(res, known.status, known.code, known.message, known.fields);
+      sendError(res, known.status, known.code, known.message, known.fields, known.issues);
       return;
     }
     logger.error({ requestId: res.locals.requestId, err }, "unhandled error");
