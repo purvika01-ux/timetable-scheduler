@@ -345,7 +345,7 @@ export default function AccountPage() {
         <h3 className="font-semibold text-ink text-sm">How your sign-in is handled</h3>
         <p>• Access tokens are held exclusively in JavaScript memory and are never persisted in localStorage or cookies.</p>
         <p>• Session refresh tokens are stored in HttpOnly, SameSite=Strict cookies with automatic rotation and token-reuse revocation.</p>
-        <p>• Each college's records are scoped on the server; a request for another college's records is refused. This is a prototype: it has not been security-reviewed for real data.</p>
+        <p>• Each college&apos;s records are scoped on the server; a request for another college&apos;s records is refused. This is a prototype: it has not been security-reviewed for real data.</p>
       </section>
     </div>
   );

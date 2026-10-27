@@ -106,7 +106,7 @@ export function PrincipalDashboard() {
       {report?.valid && missing === 0 && (
         <Banner tone="success" title="Clash-free and complete">
           The validator found no teacher, room or section clashes, no class in a too-small or wrong-type room, no class in
-          a teacher's unavailable period, and every course has all its weekly sessions.
+          a teacher&apos;s unavailable period, and every course has all its weekly sessions.
         </Banner>
       )}
 
