@@ -1,8 +1,9 @@
 "use client";
 
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 
 import { apiBaseUrlFromEnv, createApiClient, type ApiClient, ApiRequestError } from "./api/client";
+import { singleFlight } from "./single-flight";
 
 export interface AuthUser {
   id: string;
@@ -44,7 +45,14 @@ export interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [token, setToken] = useState<string | null>(null);
+  const [token, setTokenState] = useState<string | null>(null);
+  // The client reads the token from this ref, so a new token does not create a new client (and with
+  // it new callbacks that would refresh again).
+  const tokenRef = useRef<string | null>(null);
+  const setToken = useCallback((next: string | null) => {
+    tokenRef.current = next;
+    setTokenState(next);
+  }, []);
   const [user, setUser] = useState<AuthUser | null>(null);
   const [memberships, setMemberships] = useState<AuthMembership[]>([]);
   const [activeCollegeId, setActiveCollegeId] = useState<string | null>(null);
@@ -58,9 +66,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         baseUrl,
         // Cookies only go with the calls under /auth that set or use the refresh cookie (below);
         // every other API call is bearer-only, and the API refuses credentials there (CORS).
-        getToken: () => token,
+        getToken: () => tokenRef.current,
       }),
-    [baseUrl, token],
+    [baseUrl],
   );
 
   const loadMe = useCallback(
@@ -72,8 +80,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }>("/me", { token: accessToken });
         setUser(data.user);
         setMemberships(data.memberships);
-        if (data.memberships.length > 0 && !activeCollegeId) {
-          setActiveCollegeId(data.memberships[0]!.collegeId);
+        if (data.memberships.length > 0) {
+          setActiveCollegeId((current) => current ?? data.memberships[0]!.collegeId);
         }
         setStatus("authenticated");
         return { user: data.user, memberships: data.memberships };
@@ -85,32 +93,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return null;
       }
     },
-    [api, activeCollegeId],
+    [api, setToken],
   );
 
-  const refreshSession = useCallback(async (): Promise<boolean> => {
-    try {
-      const data = await api.request<{ accessToken: string }>("/auth/refresh", {
-        method: "POST",
-        credentials: "include",
-        csrfProtection: true,
-      });
-      if (data.accessToken) {
-        setToken(data.accessToken);
-        await loadMe(data.accessToken);
-        return true;
-      }
-    } catch {
-      // Refresh failed (no cookie or expired)
-    }
-    setToken(null);
-    setUser(null);
-    setMemberships([]);
-    setStatus("unauthenticated");
-    return false;
-  }, [api, loadMe]);
+  const refreshSession = useMemo(
+    () =>
+      singleFlight(async (): Promise<boolean> => {
+        try {
+          const data = await api.request<{ accessToken: string }>("/auth/refresh", {
+            method: "POST",
+            credentials: "include",
+            csrfProtection: true,
+          });
+          if (data.accessToken) {
+            setToken(data.accessToken);
+            await loadMe(data.accessToken);
+            return true;
+          }
+        } catch {
+          // Refresh failed (no cookie or expired)
+        }
+        setToken(null);
+        setUser(null);
+        setMemberships([]);
+        setStatus("unauthenticated");
+        return false;
+      }),
+    [api, loadMe, setToken],
+  );
 
-  // Attempt silent refresh on mount
+  // Attempt silent refresh once on mount (refreshSession is stable; overlapping calls share one run)
   useEffect(() => {
     void refreshSession();
   }, [refreshSession]);
@@ -140,7 +152,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       throw new ApiRequestError(500, "login_failed", "Sign-in response missing token.");
     },
-    [api, loadMe],
+    [api, loadMe, setToken],
   );
 
   const verifyMfa = useCallback(
@@ -157,7 +169,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       return {};
     },
-    [api, loadMe],
+    [api, loadMe, setToken],
   );
 
   const logout = useCallback(async () => {
@@ -175,7 +187,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setMemberships([]);
       setStatus("unauthenticated");
     }
-  }, [api]);
+  }, [api, setToken]);
 
   const logoutAll = useCallback(async () => {
     try {
@@ -194,7 +206,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setMemberships([]);
       setStatus("unauthenticated");
     }
-  }, [api, token]);
+  }, [api, token, setToken]);
 
   const selectCollege = useCallback((collegeId: string) => {
     setActiveCollegeId(collegeId);
