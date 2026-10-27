@@ -2,9 +2,10 @@ import { Types } from "mongoose";
 import { z } from "zod";
 
 import { memberOf } from "../auth/context.ts";
+import { can } from "../auth/permissions.ts";
 import { sendData } from "../http/response.ts";
 import { valid } from "../middleware/validate.ts";
-import type { AcademicService } from "../services/academic.service.ts";
+import { withoutPersonalData, type AcademicService } from "../services/academic.service.ts";
 import { collegeParams, objectId, withCollege } from "./schemas.ts";
 import type { ModuleSpec } from "./secure-router.ts";
 
@@ -197,9 +198,13 @@ export function academicRoutes(s: { academic: AcademicService }): ModuleSpec {
       {
         method: "get",
         path: "/",
-        access: { kind: "member", capability: "academic.view" },
+        access: { kind: "member", capability: "timetable.view" },
         schemas: collegeOnly,
-        handler: async (_req, res) => sendData(res, await s.academic.getDataset(memberOf(res).collegeId)),
+        handler: async (_req, res) => {
+          const member = memberOf(res);
+          const dataset = await s.academic.getDataset(member.collegeId);
+          sendData(res, can(member.roles, "academic.view") ? dataset : withoutPersonalData(dataset));
+        },
       },
       {
         method: "post",
@@ -448,7 +453,7 @@ export function academicRoutes(s: { academic: AcademicService }): ModuleSpec {
       {
         method: "get",
         path: "/timetable",
-        access: { kind: "member", capability: "academic.view" },
+        access: { kind: "member", capability: "timetable.view" },
         schemas: collegeOnly,
         handler: async (_req, res) => sendData(res, await s.academic.getTimetable(memberOf(res).collegeId)),
       },

@@ -25,6 +25,9 @@ export const CAPABILITIES = [
   "invitations.manage",
   "audit.view",
   "passwordReset.issue",
+  /** Time grid, timetable and the names it shows; no contact details or availability. */
+  "timetable.view",
+  /** All master data, including teachers' contact details and availability. */
   "academic.view",
   "academic.manage",
   "availability.manage",
@@ -33,11 +36,14 @@ export type Capability = (typeof CAPABILITIES)[number];
 
 const ROLE_CAPABILITIES: Record<CollegeRole, readonly Capability[]> = {
   CA: CAPABILITIES,
-  PR: ["college.view", "members.view", "members.export", "audit.view", "academic.view", "academic.manage", "availability.manage"],
-  TC: ["college.view", "academic.view", "academic.manage", "availability.manage"],
-  HOD: ["college.view", "academic.view", "academic.manage", "availability.manage"],
-  TE: ["college.view", "academic.view", "availability.manage"],
-  ST: ["college.view", "academic.view"],
+  // PR views master data and timetables; publishing arrives with versions (Phase 8).
+  PR: ["college.view", "members.view", "members.export", "audit.view", "timetable.view", "academic.view"],
+  TC: ["college.view", "timetable.view", "academic.view", "academic.manage", "availability.manage"],
+  // HOD edits are department-scoped (D) in the matrix; until memberships carry that scope, view only.
+  HOD: ["college.view", "timetable.view", "academic.view"],
+  // TE edits only their own availability (O); until a membership is linked to its teacher record, none.
+  TE: ["college.view", "timetable.view"],
+  ST: ["college.view", "timetable.view"],
 };
 
 /** Union of the capabilities of every role held (a person may hold several roles). */

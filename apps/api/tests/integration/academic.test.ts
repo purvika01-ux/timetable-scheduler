@@ -58,6 +58,8 @@ describe("Academic Data Management Module", () => {
   let caToken: string;
   let teToken: string;
   let stToken: string;
+  let prToken: string;
+  let hodToken: string;
   let otherCollegeTcToken: string;
 
   before(async () => {
@@ -91,6 +93,10 @@ describe("Academic Data Management Module", () => {
       { name: "Simran (ST)", emailNormalized: "simran.st@gne.edu", passwordHash, status: "active" },
       { name: "Other College TC", emailNormalized: "coord@thapar.edu", passwordHash, status: "active" },
     ]);
+    const [uPr, uHod] = await api.models.User.create([
+      { name: "Principal (PR)", emailNormalized: "pr@gne.edu", passwordHash, status: "active" },
+      { name: "Head of CSE (HOD)", emailNormalized: "hod@gne.edu", passwordHash, status: "active" },
+    ]);
 
     // Create Memberships for College A
     await runInTenant(collegeAId, async () => {
@@ -99,6 +105,8 @@ describe("Academic Data Management Module", () => {
         { collegeId: collegeAId, userId: uCa!._id, roles: ["CA"], status: "active" },
         { collegeId: collegeAId, userId: uTe!._id, roles: ["TE"], status: "active" },
         { collegeId: collegeAId, userId: uSt!._id, roles: ["ST"], status: "active" },
+        { collegeId: collegeAId, userId: uPr!._id, roles: ["PR"], status: "active" },
+        { collegeId: collegeAId, userId: uHod!._id, roles: ["HOD"], status: "active" },
       ]);
     });
 
@@ -123,6 +131,8 @@ describe("Academic Data Management Module", () => {
     caToken = await login("principal@gne.edu");
     teToken = await login("aman.te@gne.edu");
     stToken = await login("simran.st@gne.edu");
+    prToken = await login("pr@gne.edu");
+    hodToken = await login("hod@gne.edu");
     otherCollegeTcToken = await login("coord@thapar.edu");
   });
 
@@ -442,7 +452,7 @@ describe("Academic Data Management Module", () => {
   });
 
   describe("Role-Based Authorization", () => {
-    it("allows CA/PR to manage academic data", async () => {
+    it("allows CA to manage academic data", async () => {
       const res = await call<{ data: { id: string } }>(
         `${base}/colleges/${collegeAId}/academic/departments`,
         jsonPost({ code: "MATH", name: "Department of Mathematics" }, authHeaders(caToken)),
@@ -458,18 +468,69 @@ describe("Academic Data Management Module", () => {
       assert.equal(del.status, 204);
     });
 
-    it("allows TE (Teacher) to view academic data and update teacher availability", async () => {
-      const viewRes = await call(
+    it("shows TE (Teacher) the timetable data without contact details, and refuses availability edits", async () => {
+      const viewRes = await call<{ data: { teachers: Array<{ email?: string; employeeId: string }>; availability: object } }>(
         `${base}/colleges/${collegeAId}/academic`,
         { method: "GET", headers: authHeaders(teToken) },
       );
       assert.equal(viewRes.status, 200);
+      assert.ok(viewRes.body.data.teachers.length > 0);
+      for (const t of viewRes.body.data.teachers) {
+        assert.equal(t.email, undefined);
+        assert.equal(t.employeeId, "");
+      }
+      assert.deepEqual(viewRes.body.data.availability, {});
 
+      const listRes = await call(`${base}/colleges/${collegeAId}/academic/teachers`, { headers: authHeaders(teToken) });
+      assert.equal(listRes.status, 403);
+
+      const teacherId = (
+        await call<{ data: Array<{ id: string }> }>(`${base}/colleges/${collegeAId}/academic/teachers`, { headers: authHeaders(tcToken) })
+      ).body.data[0]!.id;
       const availRes = await call(
-        `${base}/colleges/${collegeAId}/academic/availability/teacher-123`,
+        `${base}/colleges/${collegeAId}/academic/availability/${teacherId}`,
         jsonPost({ slots: ["tue-2"] }, authHeaders(teToken)),
       );
-      assert.equal(availRes.status, 200);
+      assert.equal(availRes.status, 403);
+    });
+
+    it("lets PR and HOD view academic data but not change it or the timetable", async () => {
+      for (const token of [prToken, hodToken]) {
+        const view = await call<{ data: { teachers: Array<{ employeeId: string }> } }>(`${base}/colleges/${collegeAId}/academic`, {
+          headers: authHeaders(token),
+        });
+        assert.equal(view.status, 200);
+        assert.ok(view.body.data.teachers.some((t) => t.employeeId !== ""), "staff who review data see full records");
+
+        const create = await call(
+          `${base}/colleges/${collegeAId}/academic/departments`,
+          jsonPost({ code: "PRHOD", name: "Should not exist" }, authHeaders(token)),
+        );
+        assert.equal(create.status, 403);
+
+        const generate = await call(`${base}/colleges/${collegeAId}/academic/timetable/generate`, jsonPost({ seed: 1 }, authHeaders(token)));
+        assert.equal(generate.status, 403);
+
+        const clear = await call(`${base}/colleges/${collegeAId}/academic/timetable`, jsonDelete(authHeaders(token)));
+        assert.equal(clear.status, 403);
+
+        const avail = await call(
+          `${base}/colleges/${collegeAId}/academic/availability/000000000000000000000000`,
+          jsonPost({ slots: [] }, authHeaders(token)),
+        );
+        assert.equal(avail.status, 403);
+      }
+    });
+
+    it("refuses availability for a teacher that does not exist", async () => {
+      for (const teacherId of ["teacher-123", "000000000000000000000000"]) {
+        const res = await call<{ error: { code: string } }>(
+          `${base}/colleges/${collegeAId}/academic/availability/${teacherId}`,
+          jsonPost({ slots: ["tue-2"] }, authHeaders(tcToken)),
+        );
+        assert.equal(res.status, 404);
+        assert.equal(res.body.error.code, "not_found");
+      }
     });
 
     it("forbids TE (Teacher) from creating departments or sections", async () => {

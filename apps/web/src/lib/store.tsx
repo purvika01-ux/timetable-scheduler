@@ -430,15 +430,13 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     setRoleState(next);
   }, []);
 
+  // Mirrors the API's role capabilities (apps/api/src/auth/permissions.ts); the server still decides.
   const canManageAcademic = useMemo(() => {
     if (!activeCollege) return true;
-    return activeCollege.roles.some((r) => ["TC", "CA", "PR", "HOD"].includes(r));
+    return activeCollege.roles.some((r) => ["TC", "CA"].includes(r));
   }, [activeCollege]);
 
-  const canManageAvailability = useMemo(() => {
-    if (!activeCollege) return true;
-    return activeCollege.roles.some((r) => ["TC", "CA", "PR", "HOD", "TE"].includes(r));
-  }, [activeCollege]);
+  const canManageAvailability = canManageAcademic;
 
   const { dataset, timetable } = workspace;
   const effectiveRole: Role = useMemo(() => {

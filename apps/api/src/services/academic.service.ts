@@ -7,6 +7,22 @@ import { generateTimetable } from "../timetable/scheduler.ts";
 import type { Dataset, ScheduledEntry } from "../timetable/types.ts";
 import { validateTimetable } from "../timetable/validator.ts";
 
+/** The dataset as members without `academic.view` see it: no teacher contact details or availability. */
+export function withoutPersonalData(dataset: Dataset): Dataset {
+  return {
+    ...dataset,
+    teachers: dataset.teachers.map((t) => ({
+      id: t.id,
+      name: t.name,
+      designation: t.designation,
+      departmentId: t.departmentId,
+      employeeId: "",
+      maxPeriodsPerDay: t.maxPeriodsPerDay,
+    })),
+    availability: {},
+  };
+}
+
 export function createAcademicService(deps: Deps) {
   const { models } = deps;
 
@@ -581,6 +597,9 @@ export function createAcademicService(deps: Deps) {
   }
 
   async function setTeacherAvailability(teacherId: string, slots: string[]) {
+    if (!Types.ObjectId.isValid(teacherId) || !(await models.Teacher.exists({ _id: new Types.ObjectId(teacherId) }))) {
+      throw notFound("Teacher");
+    }
     await models.TeacherAvailability.findOneAndUpdate(
       { teacherId },
       { $set: { slots } },
